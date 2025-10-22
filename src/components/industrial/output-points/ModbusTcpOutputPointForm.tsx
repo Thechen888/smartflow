@@ -26,6 +26,7 @@ interface ModbusRegister {
   b?: number;
   hint?: string;
   boundInputPoint?: string; // 新增绑定输入点位字段
+  identifier?: string; // 新增标识字段
 }
 
 interface ModbusTcpOutputPointFormProps {
@@ -53,7 +54,8 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     a: 1,
     b: 0,
     hint: '',
-    boundInputPoint: undefined // 初始化绑定输入点位字段
+    boundInputPoint: undefined, // 初始化绑定输入点位字段
+    identifier: '' // 初始化标识字段
   });
 
   // 寄存器表操作
@@ -77,7 +79,8 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
         a: 1,
         b: 0,
         hint: '',
-        boundInputPoint: undefined
+        boundInputPoint: undefined,
+        identifier: ''
       });
       setIsAddingRegister(false);
     }
@@ -261,7 +264,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-7 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-8 gap-2">
                 <div className="flex items-center space-x-2" title="是否反转多字节数据的字节顺序">
                   <Checkbox
                     checked={editingRegister ? editingRegister.reverseByteOrder : newRegister.reverseByteOrder}
@@ -271,6 +274,18 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                     }
                   />
                   <Label className="text-sm">反转字节序</Label>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">标识</Label>
+                  <Input
+                    placeholder="脚本标识"
+                    title="脚本标识符，用于在脚本中引用此寄存器"
+                    value={editingRegister ? (editingRegister.identifier ?? '') : (newRegister.identifier ?? '')}
+                    onChange={(e) => editingRegister 
+                      ? setEditingRegister({ ...editingRegister, identifier: e.target.value })
+                      : setNewRegister({ ...newRegister, identifier: e.target.value })
+                    }
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">绑定输入点位</Label>
@@ -430,6 +445,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
+                  <TableHead>标识</TableHead>
                   <TableHead>绑定输入</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
@@ -450,6 +466,9 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                     <TableCell className="font-medium">{register.name}</TableCell>
                     <TableCell>
                       {register.reverseByteOrder ? '反转' : '正常'}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {register.identifier || '-'}
                     </TableCell>
                     <TableCell>
                       {register.boundInputPoint || '-'}

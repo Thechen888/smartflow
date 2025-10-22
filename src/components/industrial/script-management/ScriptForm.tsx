@@ -57,7 +57,7 @@ const ScriptForm: React.FC<ScriptFormProps> = ({
         <div className="mb-4">
           <Label>Python脚本 *</Label>
           <div className="text-xs text-gray-500 mb-2">
-            通过 dev1.get("别名") 获取变量值，通过 dev1.set("输出变量", 值) 设置输出值
+            已配置的变量名称：SOH，Humidity
           </div>
           <div className="text-xs text-green-600 mb-2 font-medium">
             可用字典: localvars (当前脚本), globalvars (全局共享)
@@ -65,20 +65,20 @@ const ScriptForm: React.FC<ScriptFormProps> = ({
           <Textarea
             placeholder={`# 示例脚本
 # 获取输入值
-temp1 = dev1.get("TEMP1")
-temp2 = dev1.get("TEMP2")
+SOH = dev1.get("SOH")
+Humidity = dev1.get("Humidity")
 
 # 使用localvars存储临时变量
-localvars["last_temp"] = temp1
+localvars["last_soh"] = SOH
 
 # 使用globalvars设置全局状态
 globalvars["system_status"] = "running"
 
 # 设置输出值
-dev1.set("MOTOR_CONTROL", temp1 > 100)
+dev1.set("MOTOR_CONTROL", SOH > 80)
 
 # 或返回结果值（如果需要）
-result = (temp1 + temp2) / 2`}
+result = (SOH + Humidity) / 2`}
             value={formData.scriptContent}
             onChange={(e) => setFormData({ ...formData, scriptContent: e.target.value })}
             rows={12}

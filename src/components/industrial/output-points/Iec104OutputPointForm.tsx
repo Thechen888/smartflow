@@ -28,6 +28,7 @@ interface Iec104OutputPoint {
   selectTimeout?: number;
   executeTimeout?: number;
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputProtocol?: string;
   boundInputPoint?: string;
 }
 
@@ -59,6 +60,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   const [selectedPointForConfig, setSelectedPointForConfig] = useState<Iec104OutputPoint | null>(null);
   const [configForm, setConfigForm] = useState({
     logicType: 'BIND_INPUT' as 'BIND_INPUT' | 'SCRIPT_ONLY',
+    boundInputProtocol: 'IEC104',
     boundInputPoint: 'voltage'
   });
 
@@ -108,6 +110,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     setSelectedPointForConfig(point);
     setConfigForm({
       logicType: point.logicType || 'BIND_INPUT',
+      boundInputProtocol: point.boundInputProtocol || 'IEC104',
       boundInputPoint: point.boundInputPoint || 'voltage'
     });
     setConfigDialogOpen(true);
@@ -118,6 +121,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
       const updatedPoint = {
         ...selectedPointForConfig,
         logicType: configForm.logicType,
+        boundInputProtocol: configForm.boundInputProtocol,
         boundInputPoint: configForm.logicType === 'BIND_INPUT' ? configForm.boundInputPoint : undefined
       };
       onPointsChange(points.map(point => 
@@ -179,6 +183,22 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     if (!type) return '绑定输入点位';
     return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
   };
+
+  // 协议选项
+  const protocolOptions = [
+    'MODBUS TCP 客户端',
+    'MODBUS RTU 客户端', 
+    'IEC104',
+    'IEC61850 客户端',
+    'DLT645 RTU 电表',
+    'DLT645 TCP 电表'
+  ];
+
+  // 点位选项（所有协议都相同）
+  const pointOptions = [
+    { value: 'voltage', label: '电压-voltage' },
+    { value: 'current', label: '电流-current' }
+  ];
 
   return (
     <div className="space-y-4">
@@ -458,7 +478,9 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                       {getLogicTypeLabel(point.logicType)}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {point.logicType === 'BIND_INPUT' ? (point.boundInputPoint || 'voltage') : '-'}
+                      {point.logicType === 'BIND_INPUT' ? 
+                        `${point.boundInputProtocol || 'IEC104'} - ${point.boundInputPoint || 'voltage'}` : 
+                        '-'}
                     </TableCell>
                     <TableCell className="flex gap-1">
                       <Button
@@ -514,6 +536,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                 onValueChange={(value) => setConfigForm({ 
                   ...configForm, 
                   logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
+                  boundInputProtocol: value === 'BIND_INPUT' ? (configForm.boundInputProtocol || 'IEC104') : undefined,
                   boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'voltage') : undefined
                 })}
               >
@@ -528,21 +551,48 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
             </div>
             
             {configForm.logicType === 'BIND_INPUT' && (
-              <div>
-                <Label>输入点位选择 *</Label>
-                <Select
-                  value={configForm.boundInputPoint}
-                  onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="voltage">voltage</SelectItem>
-                    <SelectItem value="current">current</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <>
+                <div>
+                  <Label>输入协议类型 *</Label>
+                  <Select
+                    value={configForm.boundInputProtocol}
+                    onValueChange={(value) => setConfigForm({ 
+                      ...configForm, 
+                      boundInputProtocol: value,
+                      boundInputPoint: 'voltage'
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {protocolOptions.map(protocol => (
+                        <SelectItem key={protocol} value={protocol}>
+                          {protocol}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>输入点位选择 *</Label>
+                  <Select
+                    value={configForm.boundInputPoint}
+                    onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pointOptions.map(point => (
+                        <SelectItem key={point.value} value={point.value}>
+                          {point.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
             )}
           </div>
           <DialogFooter>

@@ -196,10 +196,10 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
     'DLT645 TCP 电表'
   ];
 
-  // 点位选项（所有协议都相同）
+  // 点位选项（所有协议都相同）- Updated to show only 'voltage' and 'current'
   const pointOptions = [
-    { value: 'voltage', label: '电压-voltage' },
-    { value: 'current', label: '电流-current' }
+    { value: 'voltage', label: 'voltage' },
+    { value: 'current', label: 'current' }
   ];
 
   return (

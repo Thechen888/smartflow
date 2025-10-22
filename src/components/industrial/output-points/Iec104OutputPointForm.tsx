@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Download, Upload, Pencil } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
 interface Iec104OutputPoint {
@@ -26,8 +27,8 @@ interface Iec104OutputPoint {
   description?: string;
   selectTimeout?: number;
   executeTimeout?: number;
-  identifier?: string; // 新增标识字段
-  boundInputPoint?: string; // 新增绑定输入点位字段
+  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputPoint?: string;
 }
 
 interface Iec104OutputPointFormProps {
@@ -51,9 +52,14 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     operationLevel: 'OPERATOR',
     description: '',
     selectTimeout: 10000,
-    executeTimeout: 15000,
-    identifier: '', // 初始化标识字段
-    boundInputPoint: undefined // 初始化绑定输入点位字段
+    executeTimeout: 15000
+  });
+
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedPointForConfig, setSelectedPointForConfig] = useState<Iec104OutputPoint | null>(null);
+  const [configForm, setConfigForm] = useState({
+    logicType: 'BIND_INPUT' as 'BIND_INPUT' | 'SCRIPT_ONLY',
+    boundInputPoint: 'voltage'
   });
 
   const addPoint = () => {
@@ -73,9 +79,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
         operationLevel: 'OPERATOR',
         description: '',
         selectTimeout: 10000,
-        executeTimeout: 15000,
-        identifier: '',
-        boundInputPoint: undefined
+        executeTimeout: 15000
       });
       setIsAdding(false);
     }
@@ -97,6 +101,31 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   const startEditingPoint = (point: Iec104OutputPoint) => {
     setEditingPoint({ ...point });
     setIsAdding(false);
+  };
+
+  // 配置对话框处理
+  const openConfigDialog = (point: Iec104OutputPoint) => {
+    setSelectedPointForConfig(point);
+    setConfigForm({
+      logicType: point.logicType || 'BIND_INPUT',
+      boundInputPoint: point.boundInputPoint || 'voltage'
+    });
+    setConfigDialogOpen(true);
+  };
+
+  const saveConfig = () => {
+    if (selectedPointForConfig) {
+      const updatedPoint = {
+        ...selectedPointForConfig,
+        logicType: configForm.logicType,
+        boundInputPoint: configForm.logicType === 'BIND_INPUT' ? configForm.boundInputPoint : undefined
+      };
+      onPointsChange(points.map(point => 
+        point.id === selectedPointForConfig.id ? updatedPoint : point
+      ));
+      setConfigDialogOpen(false);
+      setSelectedPointForConfig(null);
+    }
   };
 
   const exportConfig = () => {
@@ -144,6 +173,11 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
       'setpoint': '设定点信息 (C_SE_NA_1/C_SE_NB_1/C_SE_NC_1)'
     };
     return labels[type] || type;
+  };
+
+  const getLogicTypeLabel = (type: 'BIND_INPUT' | 'SCRIPT_ONLY' | undefined) => {
+    if (!type) return '绑定输入点位';
+    return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
   };
 
   return (
@@ -339,7 +373,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
               )}
               
               {editingPoint?.controlType === 'SELECT_EXECUTE' || newPoint.controlType === 'SELECT_EXECUTE' ? (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <Label className="text-xs">选择超时(ms)</Label>
                     <Input
@@ -365,36 +399,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                         : setNewPoint({ ...newPoint, executeTimeout: parseInt(e.target.value) || 15000 })
                       }
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">标识</Label>
-                    <Input
-                      placeholder="脚本标识"
-                      title="脚本标识符，用于在脚本中引用此点位"
-                      value={editingPoint ? (editingPoint.identifier ?? '') : (newPoint.identifier ?? '')}
-                      onChange={(e) => editingPoint 
-                        ? setEditingPoint({ ...editingPoint, identifier: e.target.value })
-                        : setNewPoint({ ...newPoint, identifier: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">绑定输入点位</Label>
-                    <Select
-                      value={editingPoint ? editingPoint.boundInputPoint : newPoint.boundInputPoint}
-                      onValueChange={(value) => editingPoint 
-                        ? setEditingPoint({ ...editingPoint, boundInputPoint: value || undefined })
-                        : setNewPoint({ ...newPoint, boundInputPoint: value || undefined })
-                      }
-                    >
-                      <SelectTrigger className="w-full" title="选择要绑定的输入点位">
-                        <SelectValue placeholder="选择输入点位" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="voltage">voltage</SelectItem>
-                        <SelectItem value="current">current</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               ) : null}
@@ -424,8 +428,8 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                   <TableHead>操作级别</TableHead>
                   <TableHead>默认值</TableHead>
                   <TableHead>描述</TableHead>
-                  <TableHead>标识</TableHead>
-                  <TableHead>绑定输入</TableHead>
+                  <TableHead>逻辑类型</TableHead>
+                  <TableHead>绑定输入点位</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -450,8 +454,12 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                     </TableCell>
                     <TableCell>{point.defaultValue || '-'}</TableCell>
                     <TableCell className="text-xs">{point.description || '-'}</TableCell>
-                    <TableCell className="font-mono text-xs">{point.identifier || '-'}</TableCell>
-                    <TableCell>{point.boundInputPoint || '-'}</TableCell>
+                    <TableCell className="text-xs">
+                      {getLogicTypeLabel(point.logicType)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {point.logicType === 'BIND_INPUT' ? (point.boundInputPoint || 'voltage') : '-'}
+                    </TableCell>
                     <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -460,6 +468,14 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                         title="编辑点位"
                       >
                         <Pencil className="h-4 w-4 text-blue-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openConfigDialog(point)}
+                        title="配置逻辑"
+                      >
+                        <Settings2 className="h-4 w-4 text-purple-500" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -483,6 +499,58 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* 配置对话框 */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>配置输出点位逻辑</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>逻辑类型 *</Label>
+              <Select
+                value={configForm.logicType}
+                onValueChange={(value) => setConfigForm({ 
+                  ...configForm, 
+                  logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
+                  boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'voltage') : undefined
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BIND_INPUT">绑定输入点位</SelectItem>
+                  <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {configForm.logicType === 'BIND_INPUT' && (
+              <div>
+                <Label>输入点位选择 *</Label>
+                <Select
+                  value={configForm.boundInputPoint}
+                  onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="voltage">voltage</SelectItem>
+                    <SelectItem value="current">current</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
+            <Button onClick={saveConfig}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

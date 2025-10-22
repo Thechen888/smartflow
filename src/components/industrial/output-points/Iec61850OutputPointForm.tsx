@@ -26,6 +26,8 @@ interface Iec61850OutputPoint {
   description?: string;
   sboTimeout?: number;
   enhancedDirect?: boolean;
+  identifier?: string; // 新增标识字段
+  boundInputPoint?: string; // 新增绑定输入点位字段
 }
 
 interface Iec61850OutputPointFormProps {
@@ -48,7 +50,9 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
     controlType: 'SELECT_BEFORE_OPERATE',
     operationLevel: 'OPERATOR',
     description: '',
-    sboTimeout: 10000
+    sboTimeout: 10000,
+    identifier: '', // 初始化标识字段
+    boundInputPoint: undefined // 初始化绑定输入点位字段
   });
 
   const addPoint = () => {
@@ -67,7 +71,9 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
         controlType: 'SELECT_BEFORE_OPERATE', 
         operationLevel: 'OPERATOR',
         description: '',
-        sboTimeout: 10000
+        sboTimeout: 10000,
+        identifier: '',
+        boundInputPoint: undefined
       });
       setIsAdding(false);
     }
@@ -335,31 +341,95 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
               )}
               
               {editingPoint?.controlType === 'SELECT_BEFORE_OPERATE' || newPoint.controlType === 'SELECT_BEFORE_OPERATE' ? (
-                <div className="space-y-1">
-                  <Label className="text-xs">选择操作超时(ms)</Label>
-                  <Input
-                    type="number"
-                    placeholder="选择操作超时时间"
-                    title="选择操作超时时间（毫秒）"
-                    value={editingPoint ? (editingPoint.sboTimeout ?? 10000) : (newPoint.sboTimeout ?? 10000)}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, sboTimeout: parseInt(e.target.value) || 10000 })
-                      : setNewPoint({ ...newPoint, sboTimeout: parseInt(e.target.value) || 10000 })
-                    }
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">选择操作超时(ms)</Label>
+                    <Input
+                      type="number"
+                      placeholder="选择操作超时时间"
+                      title="选择操作超时时间（毫秒）"
+                      value={editingPoint ? (editingPoint.sboTimeout ?? 10000) : (newPoint.sboTimeout ?? 10000)}
+                      onChange={(e) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, sboTimeout: parseInt(e.target.value) || 10000 })
+                        : setNewPoint({ ...newPoint, sboTimeout: parseInt(e.target.value) || 10000 })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">标识</Label>
+                    <Input
+                      placeholder="脚本标识"
+                      title="脚本标识符，用于在脚本中引用此点位"
+                      value={editingPoint ? (editingPoint.identifier ?? '') : (newPoint.identifier ?? '')}
+                      onChange={(e) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, identifier: e.target.value })
+                        : setNewPoint({ ...newPoint, identifier: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">绑定输入点位</Label>
+                    <Select
+                      value={editingPoint ? editingPoint.boundInputPoint : newPoint.boundInputPoint}
+                      onValueChange={(value) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, boundInputPoint: value || undefined })
+                        : setNewPoint({ ...newPoint, boundInputPoint: value || undefined })
+                      }
+                    >
+                      <SelectTrigger className="w-full" title="选择要绑定的输入点位">
+                        <SelectValue placeholder="选择输入点位" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="voltage">voltage</SelectItem>
+                        <SelectItem value="current">current</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               ) : null}
               
               {editingPoint?.controlType === 'ENHANCED_DIRECT' || newPoint.controlType === 'ENHANCED_DIRECT' ? (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={editingPoint ? editingPoint.enhancedDirect : newPoint.enhancedDirect}
-                    onCheckedChange={(checked) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, enhancedDirect: checked as boolean })
-                      : setNewPoint({ ...newPoint, enhancedDirect: checked as boolean })
-                    }
-                  />
-                  <Label className="text-sm">启用增强直接控制</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={editingPoint ? editingPoint.enhancedDirect : newPoint.enhancedDirect}
+                      onCheckedChange={(checked) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, enhancedDirect: checked as boolean })
+                        : setNewPoint({ ...newPoint, enhancedDirect: checked as boolean })
+                      }
+                    />
+                    <Label className="text-sm">启用增强直接控制</Label>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">标识</Label>
+                    <Input
+                      placeholder="脚本标识"
+                      title="脚本标识符，用于在脚本中引用此点位"
+                      value={editingPoint ? (editingPoint.identifier ?? '') : (newPoint.identifier ?? '')}
+                      onChange={(e) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, identifier: e.target.value })
+                        : setNewPoint({ ...newPoint, identifier: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">绑定输入点位</Label>
+                    <Select
+                      value={editingPoint ? editingPoint.boundInputPoint : newPoint.boundInputPoint}
+                      onValueChange={(value) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, boundInputPoint: value || undefined })
+                        : setNewPoint({ ...newPoint, boundInputPoint: value || undefined })
+                      }
+                    >
+                      <SelectTrigger className="w-full" title="选择要绑定的输入点位">
+                        <SelectValue placeholder="选择输入点位" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="voltage">voltage</SelectItem>
+                        <SelectItem value="current">current</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               ) : null}
               
@@ -388,6 +458,8 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
                   <TableHead>操作级别</TableHead>
                   <TableHead>默认值</TableHead>
                   <TableHead>描述</TableHead>
+                  <TableHead>标识</TableHead>
+                  <TableHead>绑定输入</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -413,6 +485,8 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
                     </TableCell>
                     <TableCell>{point.defaultValue || '-'}</TableCell>
                     <TableCell className="text-xs">{point.description || '-'}</TableCell>
+                    <TableCell className="font-mono text-xs">{point.identifier || '-'}</TableCell>
+                    <TableCell>{point.boundInputPoint || '-'}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"

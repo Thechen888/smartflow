@@ -26,6 +26,8 @@ interface Iec104OutputPoint {
   description?: string;
   selectTimeout?: number;
   executeTimeout?: number;
+  identifier?: string; // 新增标识字段
+  boundInputPoint?: string; // 新增绑定输入点位字段
 }
 
 interface Iec104OutputPointFormProps {
@@ -49,7 +51,9 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     operationLevel: 'OPERATOR',
     description: '',
     selectTimeout: 10000,
-    executeTimeout: 15000
+    executeTimeout: 15000,
+    identifier: '', // 初始化标识字段
+    boundInputPoint: undefined // 初始化绑定输入点位字段
   });
 
   const addPoint = () => {
@@ -69,7 +73,9 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
         operationLevel: 'OPERATOR',
         description: '',
         selectTimeout: 10000,
-        executeTimeout: 15000
+        executeTimeout: 15000,
+        identifier: '',
+        boundInputPoint: undefined
       });
       setIsAdding(false);
     }
@@ -333,7 +339,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
               )}
               
               {editingPoint?.controlType === 'SELECT_EXECUTE' || newPoint.controlType === 'SELECT_EXECUTE' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                   <div className="space-y-1">
                     <Label className="text-xs">选择超时(ms)</Label>
                     <Input
@@ -359,6 +365,36 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                         : setNewPoint({ ...newPoint, executeTimeout: parseInt(e.target.value) || 15000 })
                       }
                     />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">标识</Label>
+                    <Input
+                      placeholder="脚本标识"
+                      title="脚本标识符，用于在脚本中引用此点位"
+                      value={editingPoint ? (editingPoint.identifier ?? '') : (newPoint.identifier ?? '')}
+                      onChange={(e) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, identifier: e.target.value })
+                        : setNewPoint({ ...newPoint, identifier: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">绑定输入点位</Label>
+                    <Select
+                      value={editingPoint ? editingPoint.boundInputPoint : newPoint.boundInputPoint}
+                      onValueChange={(value) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, boundInputPoint: value || undefined })
+                        : setNewPoint({ ...newPoint, boundInputPoint: value || undefined })
+                      }
+                    >
+                      <SelectTrigger className="w-full" title="选择要绑定的输入点位">
+                        <SelectValue placeholder="选择输入点位" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="voltage">voltage</SelectItem>
+                        <SelectItem value="current">current</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               ) : null}
@@ -388,6 +424,8 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                   <TableHead>操作级别</TableHead>
                   <TableHead>默认值</TableHead>
                   <TableHead>描述</TableHead>
+                  <TableHead>标识</TableHead>
+                  <TableHead>绑定输入</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -412,6 +450,8 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                     </TableCell>
                     <TableCell>{point.defaultValue || '-'}</TableCell>
                     <TableCell className="text-xs">{point.description || '-'}</TableCell>
+                    <TableCell className="font-mono text-xs">{point.identifier || '-'}</TableCell>
+                    <TableCell>{point.boundInputPoint || '-'}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"

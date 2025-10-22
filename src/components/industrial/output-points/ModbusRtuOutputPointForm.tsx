@@ -25,6 +25,8 @@ interface ModbusRegister {
   a?: number;
   b?: number;
   hint?: string;
+  boundInputPoint?: string; // 新增绑定输入点位字段
+  identifier?: string; // 新增标识字段
 }
 
 interface ModbusRtuOutputPointFormProps {
@@ -51,7 +53,9 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
     asciiInvalid: '',
     a: 1,
     b: 0,
-    hint: ''
+    hint: '',
+    boundInputPoint: undefined, // 初始化绑定输入点位字段
+    identifier: '' // 初始化标识字段
   });
 
   // 寄存器表操作
@@ -74,7 +78,9 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
         asciiInvalid: '',
         a: 1,
         b: 0,
-        hint: ''
+        hint: '',
+        boundInputPoint: undefined,
+        identifier: ''
       });
       setIsAddingRegister(false);
     }
@@ -258,7 +264,7 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-8 gap-2">
                 <div className="flex items-center space-x-2" title="是否反转多字节数据的字节顺序">
                   <Checkbox
                     checked={editingRegister ? editingRegister.reverseByteOrder : newRegister.reverseByteOrder}
@@ -268,6 +274,36 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
                     }
                   />
                   <Label className="text-sm">反转字节序</Label>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">标识</Label>
+                  <Input
+                    placeholder="脚本标识"
+                    title="脚本标识符，用于在脚本中引用此寄存器"
+                    value={editingRegister ? (editingRegister.identifier ?? '') : (newRegister.identifier ?? '')}
+                    onChange={(e) => editingRegister 
+                      ? setEditingRegister({ ...editingRegister, identifier: e.target.value })
+                      : setNewRegister({ ...newRegister, identifier: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">绑定输入点位</Label>
+                  <Select
+                    value={editingRegister ? editingRegister.boundInputPoint : newRegister.boundInputPoint}
+                    onValueChange={(value) => editingRegister 
+                      ? setEditingRegister({ ...editingRegister, boundInputPoint: value || undefined })
+                      : setNewRegister({ ...newRegister, boundInputPoint: value || undefined })
+                    }
+                  >
+                    <SelectTrigger className="w-full" title="选择要绑定的输入点位">
+                      <SelectValue placeholder="选择输入点位" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="voltage">voltage</SelectItem>
+                      <SelectItem value="current">current</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">注释</Label>
@@ -409,6 +445,8 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
+                  <TableHead>标识</TableHead>
+                  <TableHead>绑定输入</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
                   <TableHead>提示</TableHead>
@@ -428,6 +466,12 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
                     <TableCell className="font-medium">{register.name}</TableCell>
                     <TableCell>
                       {register.reverseByteOrder ? '反转' : '正常'}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {register.identifier || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {register.boundInputPoint || '-'}
                     </TableCell>
                     <TableCell className="text-xs">
                       {register.min !== undefined && register.max !== undefined ? (

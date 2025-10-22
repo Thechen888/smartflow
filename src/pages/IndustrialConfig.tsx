@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import NodeConfig from '@/components/industrial/NodeConfig';
 import InputPointConfig from '@/components/industrial/InputPointConfig';
 import OutputPointConfig from '@/components/industrial/OutputPointConfig';
-import ScriptManagement from '@/components/industrial/ScriptManagement';
+import VariableLogicConfig from '@/components/industrial/VariableLogicConfig';
 
 const IndustrialConfig = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -18,7 +18,7 @@ const IndustrialConfig = () => {
     { id: 1, name: '节点配置', component: <NodeConfig /> },
     { id: 2, name: '输入点位', component: <InputPointConfig /> },
     { id: 3, name: '输出点位', component: <OutputPointConfig /> },
-    { id: 4, name: '脚本管理', component: <ScriptManagement /> }
+    { id: 4, name: '变量逻辑', component: <VariableLogicConfig /> }
   ];
 
   const handleNext = () => {

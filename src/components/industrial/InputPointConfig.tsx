@@ -25,7 +25,15 @@ interface CommunicationNode {
   description?: string;
 }
 
-// Updated MODBUS output point interfaces to match input point structure
+interface ModbusScanEntry {
+  id: string;
+  slaveId: number;
+  start: number;
+  count: number;
+  type: number;
+  interval: number;
+}
+
 interface ModbusRegister {
   id: string;
   slaveId: number;
@@ -40,40 +48,6 @@ interface ModbusRegister {
   a?: number;
   b?: number;
   hint?: string;
-}
-
-// IEC104 output point interface
-interface Iec104OutputPoint {
-  id: string;
-  address: number;
-  type: 'single' | 'double' | 'step' | 'setpoint';
-  name: string;
-  dataType: 'BOOLEAN' | 'INT32' | 'FLOAT32';
-  controlType: 'DIRECT' | 'SELECT_EXECUTE';
-  operationLevel: 'OPERATOR' | 'ENGINEER' | 'ADMIN';
-  min?: number;
-  max?: number;
-  defaultValue?: string;
-  description?: string;
-  selectTimeout?: number;
-  executeTimeout?: number;
-}
-
-// IEC61850 output point interface
-interface Iec61850OutputPoint {
-  id: string;
-  address: string;
-  type: 'boolean' | 'int32' | 'float32' | 'timestamp' | 'check';
-  name: string;
-  dataType: 'BOOLEAN' | 'INT32' | 'FLOAT32' | 'TIMESTAMP';
-  controlType: 'DIRECT' | 'SELECT_BEFORE_OPERATE' | 'ENHANCED_DIRECT';
-  operationLevel: 'OPERATOR' | 'ENGINEER' | 'ADMIN';
-  min?: number;
-  max?: number;
-  defaultValue?: string;
-  description?: string;
-  sboTimeout?: number;
-  enhancedDirect?: boolean;
 }
 
 // Protocol display name mapping
@@ -93,16 +67,16 @@ const getProtocolDisplayName = (protocol: ProtocolType): string => {
   return displayNames[protocol];
 };
 
-// Import protocol-specific output point forms
-import ModbusTcpOutputPointForm from './output-points/ModbusTcpOutputPointForm';
-import ModbusRtuOutputPointForm from './output-points/ModbusRtuOutputPointForm';
-import Iec104OutputPointForm from './output-points/Iec104OutputPointForm';
-import Iec61850OutputPointForm from './output-points/Iec61850OutputPointForm';
+// Import unified MODBUS form component
+import ModbusInputPointForm from './input-points/ModbusInputPointForm';
+import Dlt645RtuInputPointForm from './input-points/Dlt645RtuInputPointForm';
+import Dlt645TcpInputPointForm from './input-points/Dlt645TcpInputPointForm';
+import Iec104InputPointForm from './input-points/Iec104InputPointForm';
+import Iec61850InputPointForm from './input-points/Iec61850InputPointForm';
 
 const InputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
   
   // MODBUS unified config state
   const [modbusScanEntries, setModbusScanEntries] = useState<ModbusScanEntry[]>([
@@ -221,11 +195,6 @@ const InputPointConfig = () => {
     }
   }, []);
 
-  // 根据搜索词过滤节点
-  const filteredNodes = nodes.filter(node => 
-    node.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -238,18 +207,8 @@ const InputPointConfig = () => {
           <CardTitle>设备列表</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* 搜索栏 */}
-          <div className="mb-4">
-            <Input
-              placeholder="搜索设备名称..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
-          </div>
-          
           <div className="flex flex-wrap gap-3 overflow-x-auto pb-2">
-            {filteredNodes.map(node => (
+            {nodes.map(node => (
               <div
                 key={node.id}
                 className={`px-4 py-2 rounded-lg cursor-pointer transition-colors whitespace-nowrap ${
@@ -268,12 +227,6 @@ const InputPointConfig = () => {
               </div>
             ))}
           </div>
-          
-          {filteredNodes.length === 0 && searchTerm && (
-            <div className="text-center py-4 text-gray-500">
-              未找到匹配的设备 "{searchTerm}"
-            </div>
-          )}
         </CardContent>
       </Card>
 

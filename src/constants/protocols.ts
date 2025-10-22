@@ -1,0 +1,67 @@
+import { ProtocolType } from '@/types';
+
+export const PROTOCOL_TYPES: Record<string, ProtocolType> = {
+  MODBUS_TCP: 'MODBUS_TCP',
+  MODBUS_RTU: 'MODBUS_RTU',
+  MODBUS_TCP_SERVER: 'MODBUS_TCP_SERVER',
+  MODBUS_RTU_SERVER: 'MODBUS_RTU_SERVER',
+  DLT645_RTU: 'DLT645_RTU',
+  DLT645_TCP: 'DLT645_TCP',
+  IEC104_SERVER: 'IEC104_SERVER',
+  IEC104_CLIENT: 'IEC104_CLIENT',
+  IEC61850_SERVER: 'IEC61850_SERVER',
+  IEC61850_CLIENT: 'IEC61850_CLIENT',
+} as const;
+
+export const PROTOCOL_NAMES: Record<ProtocolType, string> = {
+  MODBUS_TCP: 'MODBUS TCP 客户端',
+  MODBUS_RTU: 'MODBUS RTU 客户端',
+  MODBUS_TCP_SERVER: 'MODBUS TCP 服务端',
+  MODBUS_RTU_SERVER: 'MODBUS RTU 服务端',
+  DLT645_RTU: 'DLT645 RTU',
+  DLT645_TCP: 'DLT645 TCP',
+  IEC104_SERVER: 'IEC104 服务端',
+  IEC104_CLIENT: 'IEC104 客户端',
+  IEC61850_SERVER: 'IEC61850 服务端',
+  IEC61850_CLIENT: 'IEC61850 客户端',
+};
+
+export const MODBUS_FUNCTION_CODES = {
+  READ_COILS: 1,
+  READ_DISCRETE_INPUTS: 2,
+  READ_HOLDING_REGISTERS: 3,
+  READ_INPUT_REGISTERS: 4,
+  WRITE_SINGLE_COIL: 5,
+  WRITE_SINGLE_REGISTER: 6,
+  WRITE_MULTIPLE_COILS: 15,
+  WRITE_MULTIPLE_REGISTERS: 16,
+} as const;
+
+export const DATA_TYPES = [
+  'BOOLEAN',
+  'INT16',
+  'UINT16',
+  'INT32',
+  'UINT32',
+  'FLOAT',
+  'DOUBLE',
+  'STRING',
+  'BCD',
+] as const;
+
+export const SERIAL_PARITY_OPTIONS = [
+  { value: 'NONE', label: '无校验' },
+  { value: 'ODD', label: '奇校验' },
+  { value: 'EVEN', label: '偶校验' },
+] as const;
+
+export const BAUD_RATES = [
+  1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200
+] as const;
+
+export const NODE_STATUS = {
+  ONLINE: 'ONLINE',
+  OFFLINE: 'OFFLINE',
+  ERROR: 'ERROR',
+  CONNECTING: 'CONNECTING',
+} as const;

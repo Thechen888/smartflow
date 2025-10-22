@@ -3,10 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search } from 'lucide-react';
-import { Label } from '@/components/ui/label';
+import { Plus } from 'lucide-react';
 
 // Updated ProtocolType definition to include MODBUS Server
 type ProtocolType = 
@@ -96,15 +93,6 @@ const getProtocolDisplayName = (protocol: ProtocolType): string => {
   return displayNames[protocol];
 };
 
-// Get protocol group for filtering
-const getProtocolGroup = (protocol: ProtocolType): string => {
-  if (protocol.startsWith('MODBUS')) return 'MODBUS';
-  if (protocol.startsWith('DLT645')) return 'DLT645';
-  if (protocol.startsWith('IEC104')) return 'IEC104';
-  if (protocol.startsWith('IEC61850')) return 'IEC61850';
-  return 'OTHER';
-};
-
 // Import protocol-specific output point forms
 import ModbusTcpOutputPointForm from './output-points/ModbusTcpOutputPointForm';
 import ModbusRtuOutputPointForm from './output-points/ModbusRtuOutputPointForm';
@@ -114,8 +102,6 @@ import Iec61850OutputPointForm from './output-points/Iec61850OutputPointForm';
 const OutputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
-  const [filterProtocol, setFilterProtocol] = useState<string>('ALL');
-  const [filterName, setFilterName] = useState<string>('');
   
   // MODBUS TCP Server output points - using only registers (no scan entries for server)
   const [modbusTcpRegisters, setModbusTcpRegisters] = useState<ModbusRegister[]>([
@@ -264,56 +250,11 @@ const OutputPointConfig = () => {
     }
   }, []);
 
-  // Filter nodes based on protocol and name
-  const filteredNodes = nodes.filter(node => {
-    const matchesProtocol = filterProtocol === 'ALL' || getProtocolGroup(node.protocolType) === filterProtocol;
-    const matchesName = filterName === '' || node.name.toLowerCase().includes(filterName.toLowerCase());
-    return matchesProtocol && matchesName;
-  });
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">输出点位配置</h3>
       </div>
-
-      {/* Filter controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle>服务端设备筛选</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 mb-4">
-            <div className="flex-1 min-w-[200px]">
-              <Label className="text-sm mb-1 block">协议类型</Label>
-              <Select value={filterProtocol} onValueChange={setFilterProtocol}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择协议类型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">全部协议</SelectItem>
-                  <SelectItem value="MODBUS">MODBUS</SelectItem>
-                  <SelectItem value="DLT645">DLT645</SelectItem>
-                  <SelectItem value="IEC104">IEC104</SelectItem>
-                  <SelectItem value="IEC61850">IEC61850</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <Label className="text-sm mb-1 block">设备名称</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="输入设备名称搜索"
-                  value={filterName}
-                  onChange={(e) => setFilterName(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Device list horizontally */}
       <Card>
@@ -322,7 +263,7 @@ const OutputPointConfig = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 overflow-x-auto pb-2">
-            {filteredNodes.map(node => (
+            {nodes.map(node => (
               <div
                 key={node.id}
                 className={`px-4 py-2 rounded-lg cursor-pointer transition-colors whitespace-nowrap ${
@@ -341,11 +282,6 @@ const OutputPointConfig = () => {
               </div>
             ))}
           </div>
-          {filteredNodes.length === 0 && (
-            <div className="text-center py-4 text-gray-500">
-              未找到匹配的服务端设备
-            </div>
-          )}
         </CardContent>
       </Card>
 

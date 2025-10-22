@@ -6,9 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Download, Upload, Pencil, Settings } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, Pencil, Settings, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
 interface ModbusRegister {
@@ -25,6 +26,8 @@ interface ModbusRegister {
   a?: number;
   b?: number;
   hint?: string;
+  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputPoint?: string;
 }
 
 interface ModbusTcpOutputPointFormProps {
@@ -52,6 +55,13 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     a: 1,
     b: 0,
     hint: ''
+  });
+
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedRegisterForConfig, setSelectedRegisterForConfig] = useState<ModbusRegister | null>(null);
+  const [configForm, setConfigForm] = useState({
+    logicType: 'BIND_INPUT' as 'BIND_INPUT' | 'SCRIPT_ONLY',
+    boundInputPoint: 'voltage'
   });
 
   // 寄存器表操作
@@ -102,6 +112,31 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     onRegistersChange(registers.map(reg => 
       reg.id === id ? { ...reg, reverseByteOrder: !reg.reverseByteOrder } : reg
     ));
+  };
+
+  // 配置对话框处理
+  const openConfigDialog = (register: ModbusRegister) => {
+    setSelectedRegisterForConfig(register);
+    setConfigForm({
+      logicType: register.logicType || 'BIND_INPUT',
+      boundInputPoint: register.boundInputPoint || 'voltage'
+    });
+    setConfigDialogOpen(true);
+  };
+
+  const saveConfig = () => {
+    if (selectedRegisterForConfig) {
+      const updatedRegister = {
+        ...selectedRegisterForConfig,
+        logicType: configForm.logicType,
+        boundInputPoint: configForm.logicType === 'BIND_INPUT' ? configForm.boundInputPoint : undefined
+      };
+      onRegistersChange(registers.map(reg => 
+        reg.id === selectedRegisterForConfig.id ? updatedRegister : reg
+      ));
+      setConfigDialogOpen(false);
+      setSelectedRegisterForConfig(null);
+    }
   };
 
   // 获取类型示例
@@ -161,6 +196,11 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
   // 所以 x = a * y + b，其中 min/max 是 x 的范围（实际值范围）
   const getLinearFormula = (a: number, b: number) => {
     return `实际值 = ${a} × 寄存器值 + ${b}`;
+  };
+
+  const getLogicTypeLabel = (type: 'BIND_INPUT' | 'SCRIPT_ONLY' | undefined) => {
+    if (!type) return '绑定输入点位';
+    return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
   };
 
   return (
@@ -411,6 +451,8 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                   <TableHead>字节序</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
+                  <TableHead>逻辑类型</TableHead>
+                  <TableHead>绑定输入点位</TableHead>
                   <TableHead>提示</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -439,6 +481,12 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                     <TableCell className="text-xs">
                       {getLinearFormula(register.a || 1, register.b || 0)}
                     </TableCell>
+                    <TableCell className="text-xs">
+                      {getLogicTypeLabel(register.logicType)}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {register.logicType === 'BIND_INPUT' ? (register.boundInputPoint || 'voltage') : '-'}
+                    </TableCell>
                     <TableCell className="text-xs">{register.hint || '-'}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button
@@ -448,6 +496,14 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                         title="编辑寄存器"
                       >
                         <Pencil className="h-4 w-4 text-blue-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openConfigDialog(register)}
+                        title="配置逻辑"
+                      >
+                        <Settings2 className="h-4 w-4 text-purple-500" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -471,6 +527,58 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* 配置对话框 */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>配置输出点位逻辑</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>逻辑类型 *</Label>
+              <Select
+                value={configForm.logicType}
+                onValueChange={(value) => setConfigForm({ 
+                  ...configForm, 
+                  logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
+                  boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'voltage') : undefined
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BIND_INPUT">绑定输入点位</SelectItem>
+                  <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {configForm.logicType === 'BIND_INPUT' && (
+              <div>
+                <Label>输入点位选择 *</Label>
+                <Select
+                  value={configForm.boundInputPoint}
+                  onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="voltage">voltage</SelectItem>
+                    <SelectItem value="current">current</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
+            <Button onClick={saveConfig}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

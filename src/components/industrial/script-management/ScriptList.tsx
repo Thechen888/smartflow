@@ -4,6 +4,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Edit, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Script } from './ScriptForm';
 
 interface ScriptListProps {
@@ -24,6 +25,7 @@ const ScriptList: React.FC<ScriptListProps> = ({
           <TableRow>
             <TableHead>脚本名称</TableHead>
             <TableHead>脚本预览</TableHead>
+            <TableHead>状态</TableHead>
             <TableHead>操作</TableHead>
           </TableRow>
         </TableHeader>
@@ -33,6 +35,9 @@ const ScriptList: React.FC<ScriptListProps> = ({
               <TableCell className="font-medium">{script.name}</TableCell>
               <TableCell className="font-mono text-sm max-w-xs truncate">
                 {script.scriptContent.substring(0, 50) + (script.scriptContent.length > 50 ? '...' : '')}
+              </TableCell>
+              <TableCell>
+                <Badge variant="default">启用</Badge>
               </TableCell>
               <TableCell>
                 <div className="flex space-x-1">

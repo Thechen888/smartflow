@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Save, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 export interface Script {
   id: string;
   name: string;
   scriptContent: string;
+  enabled?: boolean;
 }
 
 interface ScriptFormProps {
@@ -29,7 +31,8 @@ const ScriptForm: React.FC<ScriptFormProps> = ({
 }) => {
   const [formData, setFormData] = useState<Omit<Script, 'id'> | Script>(script || {
     name: '',
-    scriptContent: ''
+    scriptContent: '',
+    enabled: true
   });
 
   const handleSave = () => {
@@ -81,6 +84,15 @@ result = (temp1 + temp2) / 2`}
             rows={12}
             className="font-mono text-sm"
           />
+        </div>
+
+        <div className="mb-4 flex items-center space-x-2">
+          <Switch
+            id="script-enabled"
+            checked={formData.enabled !== false}
+            onCheckedChange={(checked) => setFormData({ ...formData, enabled: checked })}
+          />
+          <Label htmlFor="script-enabled">启用脚本</Label>
         </div>
 
         <div className="flex justify-end space-x-2">

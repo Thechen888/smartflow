@@ -29,6 +29,7 @@ interface ModbusRegister {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
+  variableName?: string; // 新增变量名称字段
 }
 
 interface ModbusTcpOutputPointFormProps {
@@ -55,7 +56,8 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     asciiInvalid: '',
     a: 1,
     b: 0,
-    hint: ''
+    hint: '',
+    variableName: '' // 初始化变量名称字段
   });
 
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -86,7 +88,8 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
         asciiInvalid: '',
         a: 1,
         b: 0,
-        hint: ''
+        hint: '',
+        variableName: '' // 重置变量名称字段
       });
       setIsAddingRegister(false);
     }
@@ -330,6 +333,18 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                   <Label className="text-sm">反转字节序</Label>
                 </div>
                 <div className="space-y-1">
+                  <Label className="text-xs">变量名称</Label>
+                  <Input
+                    placeholder="变量名称"
+                    title="输出变量名称"
+                    value={editingRegister ? (editingRegister.variableName ?? '') : (newRegister.variableName ?? '')}
+                    onChange={(e) => editingRegister 
+                      ? setEditingRegister({ ...editingRegister, variableName: e.target.value })
+                      : setNewRegister({ ...newRegister, variableName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
                   <Label className="text-xs">注释</Label>
                   <Input
                     placeholder="寄存器注释"
@@ -469,6 +484,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
+                  <TableHead>变量名称</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
                   <TableHead>逻辑类型</TableHead>
@@ -491,6 +507,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                     <TableCell>
                       {register.reverseByteOrder ? '反转' : '正常'}
                     </TableCell>
+                    <TableCell className="text-xs">{register.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">
                       {register.min !== undefined && register.max !== undefined ? (
                         <div>实际值: {register.min} - {register.max}</div>

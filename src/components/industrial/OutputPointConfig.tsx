@@ -102,6 +102,7 @@ import Iec61850OutputPointForm from './output-points/Iec61850OutputPointForm';
 const OutputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // MODBUS TCP Server output points - using only registers (no scan entries for server)
   const [modbusTcpRegisters, setModbusTcpRegisters] = useState<ModbusRegister[]>([
@@ -250,6 +251,11 @@ const OutputPointConfig = () => {
     }
   }, []);
 
+  // 根据搜索词过滤服务端节点
+  const filteredNodes = nodes.filter(node => 
+    node.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -262,8 +268,18 @@ const OutputPointConfig = () => {
           <CardTitle>服务端设备列表</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* 搜索栏 */}
+          <div className="mb-4">
+            <Input
+              placeholder="搜索服务端设备名称..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          
           <div className="flex flex-wrap gap-3 overflow-x-auto pb-2">
-            {nodes.map(node => (
+            {filteredNodes.map(node => (
               <div
                 key={node.id}
                 className={`px-4 py-2 rounded-lg cursor-pointer transition-colors whitespace-nowrap ${
@@ -282,6 +298,12 @@ const OutputPointConfig = () => {
               </div>
             ))}
           </div>
+          
+          {filteredNodes.length === 0 && searchTerm && (
+            <div className="text-center py-4 text-gray-500">
+              未找到匹配的服务端设备 "{searchTerm}"
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -188,8 +188,13 @@ const NodeConfig = () => {
 
   // Check if protocol is input (client) or output (server)
   const isInputProtocol = (protocol: ProtocolType): boolean => {
-    // Input protocols: all _CLIENT protocols and DLT645 protocols
-    return protocol.endsWith('_CLIENT') || protocol.startsWith('DLT645');
+    // Input protocols: MODBUS clients, DLT645 protocols, and IEC104/IEC61850 clients
+    return (
+      protocol === 'MODBUS_TCP' || 
+      protocol === 'MODBUS_RTU' || 
+      protocol.startsWith('DLT645') || 
+      protocol.endsWith('_CLIENT')
+    );
   };
 
   // Create default config

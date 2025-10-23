@@ -188,6 +188,7 @@ const NodeConfig = () => {
 
   // Check if protocol is input (client) or output (server)
   const isInputProtocol = (protocol: ProtocolType): boolean => {
+    // Input protocols: all _CLIENT protocols and DLT645 protocols
     return protocol.endsWith('_CLIENT') || protocol.startsWith('DLT645');
   };
 

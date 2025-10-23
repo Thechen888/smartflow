@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import NodeConfigDialog from '@/components/industrial/NodeConfigDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
-// Updated ProtocolType definition to include MODBUS_SERVER
+// Updated ProtocolType definition to include MODBUS Server
 type ProtocolType = 
   | 'MODBUS_TCP' 
   | 'MODBUS_RTU' 
@@ -167,6 +167,7 @@ const NodeConfig = () => {
   const [editingNode, setEditingNode] = useState<CommunicationNode | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<'input' | 'output'>('input');
 
   // Get protocol display name
   const getProtocolDisplayName = (protocol: ProtocolType): string => {
@@ -183,6 +184,11 @@ const NodeConfig = () => {
       'IEC61850_CLIENT': 'IEC61850 客户端'
     };
     return displayNames[protocol];
+  };
+
+  // Check if protocol is input (client) or output (server)
+  const isInputProtocol = (protocol: ProtocolType): boolean => {
+    return protocol.endsWith('_CLIENT') || protocol.startsWith('DLT645');
   };
 
   // Create default config
@@ -485,6 +491,15 @@ const NodeConfig = () => {
       default: return 'text-gray-600';
     }
   };
+
+  // Filter nodes based on active tab
+  const filteredNodes = nodes.filter(node => {
+    if (activeTab === 'input') {
+      return isInputProtocol(node.protocolType);
+    } else {
+      return !isInputProtocol(node.protocolType);
+    }
+  });
 
   // MODBUS TCP Client Form
   const ModbusTcpClientForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
@@ -1993,6 +2008,14 @@ const NodeConfig = () => {
         </Button>
       </div>
 
+      {/* Tabs for input/output */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'input' | 'output')}>
+        <TabsList>
+          <TabsTrigger value="input">输入端</TabsTrigger>
+          <TabsTrigger value="output">输出端</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {isAdding && (
         <Card className="p-6">
           <CardHeader>
@@ -2006,32 +2029,23 @@ const NodeConfig = () => {
                   <SelectValue placeholder="选择协议类型" />
                 </SelectTrigger>
                 <SelectContent>
-                  <Tabs defaultValue="MODBUS">
-                    <TabsList className="grid w-full grid-cols-4 mb-2">
-                      <TabsTrigger value="MODBUS">MODBUS</TabsTrigger>
-                      <TabsTrigger value="DLT645">DLT645</TabsTrigger>
-                      <TabsTrigger value="IEC104">IEC104</TabsTrigger>
-                      <TabsTrigger value="IEC61850">IEC61850</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="MODBUS">
+                  {activeTab === 'input' ? (
+                    <>
                       <SelectItem value="MODBUS_TCP">MODBUS TCP 客户端</SelectItem>
                       <SelectItem value="MODBUS_RTU">MODBUS RTU 客户端</SelectItem>
-                      <SelectItem value="MODBUS_TCP_SERVER">MODBUS TCP 服务端</SelectItem>
-                      <SelectItem value="MODBUS_RTU_SERVER">MODBUS RTU 服务端</SelectItem>
-                    </TabsContent>
-                    <TabsContent value="DLT645">
                       <SelectItem value="DLT645_RTU">DLT645 RTU</SelectItem>
                       <SelectItem value="DLT645_TCP">DLT645 TCP</SelectItem>
-                    </TabsContent>
-                    <TabsContent value="IEC104">
-                      <SelectItem value="IEC104_SERVER">IEC104 服务端</SelectItem>
                       <SelectItem value="IEC104_CLIENT">IEC104 客户端</SelectItem>
-                    </TabsContent>
-                    <TabsContent value="IEC61850">
-                      <SelectItem value="IEC61850_SERVER">IEC61850 服务端</SelectItem>
                       <SelectItem value="IEC61850_CLIENT">IEC61850 客户端</SelectItem>
-                    </TabsContent>
-                  </Tabs>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="MODBUS_TCP_SERVER">MODBUS TCP 服务端</SelectItem>
+                      <SelectItem value="MODBUS_RTU_SERVER">MODBUS RTU 服务端</SelectItem>
+                      <SelectItem value="IEC104_SERVER">IEC104 服务端</SelectItem>
+                      <SelectItem value="IEC61850_SERVER">IEC61850 服务端</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -2053,7 +2067,7 @@ const NodeConfig = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {nodes.map((node, index) => (
+            {filteredNodes.map((node, index) => (
               <TableRow key={node.id}>
                 <TableCell className="font-medium">{index + 1}</TableCell>
                 <TableCell className="font-medium">{node.name}</TableCell>
@@ -2094,16 +2108,16 @@ const NodeConfig = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => moveNodeUp(index)}
-                      disabled={index === 0}
+                      onClick={() => moveNodeUp(nodes.findIndex(n => n.id === node.id))}
+                      disabled={nodes.findIndex(n => n.id === node.id) === 0}
                     >
                       <ArrowUp className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => moveNodeDown(index)}
-                      disabled={index === nodes.length - 1}
+                      onClick={() => moveNodeDown(nodes.findIndex(n => n.id === node.id))}
+                      disabled={nodes.findIndex(n => n.id === node.id) === nodes.length - 1}
                     >
                       <ArrowDown className="h-4 w-4" />
                     </Button>
@@ -2133,9 +2147,9 @@ const NodeConfig = () => {
         </Table>
       </div>
 
-      {nodes.length === 0 && (
+      {filteredNodes.length === 0 && (
         <div className="text-center py-8 text-gray-500">
-          暂无通信节点，请添加节点开始配置
+          {activeTab === 'input' ? '暂无输入节点，请添加输入节点开始配置' : '暂无输出节点，请添加输出节点开始配置'}
         </div>
       )}
 

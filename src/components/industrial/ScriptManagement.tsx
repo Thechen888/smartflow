@@ -75,43 +75,99 @@ const ScriptManagement = () => {
     setShowForm(true);
   };
 
-  // Priority management functions
+  // Priority management functions - using positive integers starting from 1
   const movePriorityUp = (id: string) => {
-    const scriptIndex = flowScripts.findIndex(s => s.id === id);
+    const flowScriptsSorted = scripts
+      .filter(script => script.scriptType === 'FLOW')
+      .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+    
+    const scriptIndex = flowScriptsSorted.findIndex(s => s.id === id);
     if (scriptIndex > 0) {
-      const newPriority = flowScripts[scriptIndex - 1].priority || 0;
-      const currentScript = scripts.find(s => s.id === id);
-      if (currentScript) {
-        setScripts(scripts.map(s => 
-          s.id === id ? { ...s, priority: newPriority } : 
-          s.id === flowScripts[scriptIndex - 1].id ? { ...s, priority: (currentScript.priority || 0) } : s
-        ));
-      }
+      // Swap priorities with the script above
+      const newScripts = scripts.map(script => {
+        if (script.id === id) {
+          return { ...script, priority: flowScriptsSorted[scriptIndex - 1].priority };
+        } else if (script.id === flowScriptsSorted[scriptIndex - 1].id) {
+          return { ...script, priority: flowScriptsSorted[scriptIndex].priority };
+        }
+        return script;
+      });
+      setScripts(newScripts);
     }
   };
 
   const movePriorityDown = (id: string) => {
-    const scriptIndex = flowScripts.findIndex(s => s.id === id);
-    if (scriptIndex < flowScripts.length - 1) {
-      const newPriority = flowScripts[scriptIndex + 1].priority || 0;
-      const currentScript = scripts.find(s => s.id === id);
-      if (currentScript) {
-        setScripts(scripts.map(s => 
-          s.id === id ? { ...s, priority: newPriority } : 
-          s.id === flowScripts[scriptIndex + 1].id ? { ...s, priority: (currentScript.priority || 0) } : s
-        ));
-      }
+    const flowScriptsSorted = scripts
+      .filter(script => script.scriptType === 'FLOW')
+      .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+    
+    const scriptIndex = flowScriptsSorted.findIndex(s => s.id === id);
+    if (scriptIndex < flowScriptsSorted.length - 1) {
+      // Swap priorities with the script below
+      const newScripts = scripts.map(script => {
+        if (script.id === id) {
+          return { ...script, priority: flowScriptsSorted[scriptIndex + 1].priority };
+        } else if (script.id === flowScriptsSorted[scriptIndex + 1].id) {
+          return { ...script, priority: flowScriptsSorted[scriptIndex].priority };
+        }
+        return script;
+      });
+      setScripts(newScripts);
     }
   };
 
   const moveToTop = (id: string) => {
-    const minPriority = Math.min(...flowScripts.map(s => s.priority || 0), 0) - 1;
-    setScripts(scripts.map(s => s.id === id ? { ...s, priority: minPriority } : s));
+    const flowScriptsSorted = scripts
+      .filter(script => script.scriptType === 'FLOW')
+      .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+    
+    if (flowScriptsSorted.length === 0) return;
+    
+    // Find the minimum priority value
+    const minPriority = Math.min(...flowScriptsSorted.map(s => s.priority || 1));
+    
+    // Set this script to have the minimum priority
+    const newScripts = scripts.map(script => {
+      if (script.id === id) {
+        return { ...script, priority: minPriority };
+      } else if (script.scriptType === 'FLOW' && script.priority !== undefined) {
+        // Adjust other priorities to maintain order
+        const currentIndex = flowScriptsSorted.findIndex(s => s.id === script.id);
+        const targetIndex = flowScriptsSorted.findIndex(s => s.id === id);
+        if (currentIndex < targetIndex) {
+          return { ...script, priority: (script.priority || 1) + 1 };
+        }
+      }
+      return script;
+    });
+    setScripts(newScripts);
   };
 
   const moveToBottom = (id: string) => {
-    const maxPriority = Math.max(...flowScripts.map(s => s.priority || 0), 0) + 1;
-    setScripts(scripts.map(s => s.id === id ? { ...s, priority: maxPriority } : s));
+    const flowScriptsSorted = scripts
+      .filter(script => script.scriptType === 'FLOW')
+      .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+    
+    if (flowScriptsSorted.length === 0) return;
+    
+    // Find the maximum priority value
+    const maxPriority = Math.max(...flowScriptsSorted.map(s => s.priority || 1));
+    
+    // Set this script to have the maximum priority
+    const newScripts = scripts.map(script => {
+      if (script.id === id) {
+        return { ...script, priority: maxPriority };
+      } else if (script.scriptType === 'FLOW' && script.priority !== undefined) {
+        // Adjust other priorities to maintain order
+        const currentIndex = flowScriptsSorted.findIndex(s => s.id === script.id);
+        const targetIndex = flowScriptsSorted.findIndex(s => s.id === id);
+        if (currentIndex > targetIndex) {
+          return { ...script, priority: (script.priority || 1) - 1 };
+        }
+      }
+      return script;
+    });
+    setScripts(newScripts);
   };
 
   return (

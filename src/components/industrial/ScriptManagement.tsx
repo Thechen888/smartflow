@@ -6,11 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import ScriptForm from './script-management/ScriptForm';
 import ScriptList from './script-management/ScriptList';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Script {
   id: string;
   name: string;
   scriptContent: string;
+  scriptType: 'CYCLIC' | 'FLOW';
+  executeRate?: number;
+  priority?: number;
 }
 
 const ScriptManagement = () => {
@@ -18,22 +22,34 @@ const ScriptManagement = () => {
     {
       id: '1',
       name: '平均温度计算',
-      scriptContent: '# 计算两个温度传感器的平均值\nTEMP1 = dev1.get("TEMP1")\nTEMP2 = dev1.get("TEMP2")\nresult = (TEMP1 + TEMP2) / 2'
+      scriptContent: '# 计算两个温度传感器的平均值\nTEMP1 = dev1.get("TEMP1")\nTEMP2 = dev1.get("TEMP2")\nresult = (TEMP1 + TEMP2) / 2',
+      scriptType: 'CYCLIC',
+      executeRate: 1000
     },
     {
       id: '2',
       name: '电机控制逻辑',
-      scriptContent: '# 控制电机启停\ninput_temp = dev1.get("TEMPERATURE")\n# 如果温度过高，停止电机\ndev1.set("MOTOR_CONTROL", input_temp <= 100)'
+      scriptContent: '# 控制电机启停\ninput_temp = dev1.get("TEMPERATURE")\n# 如果温度过高，停止电机\ndev1.set("MOTOR_CONTROL", input_temp <= 100)',
+      scriptType: 'FLOW',
+      priority: 1
     },
     {
       id: '3',
       name: '报警处理脚本',
-      scriptContent: '# 报警处理脚本\npressure = dev1.get("PRESSURE")\ntemperature = dev1.get("TEMPERATURE")\n\nif pressure > 100:\n    dev1.set("HIGH_PRESSURE_ALARM", True)\n    print(f"High pressure alarm: {pressure}")\n\nif temperature > 150:\n    dev1.set("HIGH_TEMP_ALARM", True)\n    print(f"High temperature alarm: {temperature}")'
+      scriptContent: '# 报警处理脚本\npressure = dev1.get("PRESSURE")\ntemperature = dev1.get("TEMPERATURE")\n\nif pressure > 100:\n    dev1.set("HIGH_PRESSURE_ALARM", True)\n    print(f"High pressure alarm: {pressure}")\n\nif temperature > 150:\n    dev1.set("HIGH_TEMP_ALARM", True)\n    print(f"High temperature alarm: {temperature}")',
+      scriptType: 'FLOW',
+      priority: 2
     }
   ]);
 
   const [showForm, setShowForm] = useState(false);
   const [editingScript, setEditingScript] = useState<Script | null>(null);
+  const [activeTab, setActiveTab] = useState<'CYCLIC' | 'FLOW'>('CYCLIC');
+
+  const cyclicScripts = scripts.filter(script => script.scriptType === 'CYCLIC');
+  const flowScripts = scripts
+    .filter(script => script.scriptType === 'FLOW')
+    .sort((a, b) => (a.priority || 0) - (b.priority || 0));
 
   const addScript = (script: Omit<Script, 'id'>) => {
     const newScript: Script = {
@@ -59,6 +75,45 @@ const ScriptManagement = () => {
     setShowForm(true);
   };
 
+  // Priority management functions
+  const movePriorityUp = (id: string) => {
+    const scriptIndex = flowScripts.findIndex(s => s.id === id);
+    if (scriptIndex > 0) {
+      const newPriority = flowScripts[scriptIndex - 1].priority || 0;
+      const currentScript = scripts.find(s => s.id === id);
+      if (currentScript) {
+        setScripts(scripts.map(s => 
+          s.id === id ? { ...s, priority: newPriority } : 
+          s.id === flowScripts[scriptIndex - 1].id ? { ...s, priority: (currentScript.priority || 0) } : s
+        ));
+      }
+    }
+  };
+
+  const movePriorityDown = (id: string) => {
+    const scriptIndex = flowScripts.findIndex(s => s.id === id);
+    if (scriptIndex < flowScripts.length - 1) {
+      const newPriority = flowScripts[scriptIndex + 1].priority || 0;
+      const currentScript = scripts.find(s => s.id === id);
+      if (currentScript) {
+        setScripts(scripts.map(s => 
+          s.id === id ? { ...s, priority: newPriority } : 
+          s.id === flowScripts[scriptIndex + 1].id ? { ...s, priority: (currentScript.priority || 0) } : s
+        ));
+      }
+    }
+  };
+
+  const moveToTop = (id: string) => {
+    const minPriority = Math.min(...flowScripts.map(s => s.priority || 0), 0) - 1;
+    setScripts(scripts.map(s => s.id === id ? { ...s, priority: minPriority } : s));
+  };
+
+  const moveToBottom = (id: string) => {
+    const maxPriority = Math.max(...flowScripts.map(s => s.priority || 0), 0) + 1;
+    setScripts(scripts.map(s => s.id === id ? { ...s, priority: maxPriority } : s));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -68,6 +123,14 @@ const ScriptManagement = () => {
           添加脚本
         </Button>
       </div>
+
+      {/* Script type tabs */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'CYCLIC' | 'FLOW')}>
+        <TabsList>
+          <TabsTrigger value="CYCLIC">循环脚本</TabsTrigger>
+          <TabsTrigger value="FLOW">流脚本</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {showForm ? (
         <ScriptForm
@@ -82,16 +145,21 @@ const ScriptManagement = () => {
       ) : (
         <Card>
           <ScriptList
-            scripts={scripts}
+            scripts={activeTab === 'CYCLIC' ? cyclicScripts : flowScripts}
             onEdit={editScript}
             onDelete={deleteScript}
+            scriptType={activeTab}
+            onMoveUp={movePriorityUp}
+            onMoveDown={movePriorityDown}
+            onMoveToTop={moveToTop}
+            onMoveToBottom={moveToBottom}
           />
         </Card>
       )}
 
-      {scripts.length === 0 && !showForm && (
+      {scripts.filter(s => s.scriptType === activeTab).length === 0 && !showForm && (
         <div className="text-center py-8 text-gray-500">
-          暂无脚本，请添加脚本开始配置
+          {activeTab === 'CYCLIC' ? '暂无循环脚本，请添加循环脚本开始配置' : '暂无流脚本，请添加流脚本开始配置'}
         </div>
       )}
     </div>

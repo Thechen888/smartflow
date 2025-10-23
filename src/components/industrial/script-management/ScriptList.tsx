@@ -35,6 +35,7 @@ const ScriptList: React.FC<ScriptListProps> = ({
           <TableRow>
             <TableHead>脚本名称</TableHead>
             {scriptType === 'FLOW' && <TableHead>优先级</TableHead>}
+            {scriptType === 'CYCLIC' && <TableHead>执行频率(ms)</TableHead>}
             <TableHead>脚本预览</TableHead>
             <TableHead>状态</TableHead>
             <TableHead>操作</TableHead>
@@ -47,6 +48,11 @@ const ScriptList: React.FC<ScriptListProps> = ({
               {scriptType === 'FLOW' && (
                 <TableCell className="text-center">
                   {index + 1}
+                </TableCell>
+              )}
+              {scriptType === 'CYCLIC' && (
+                <TableCell className="text-center">
+                  {script.executeRate || 1000}
                 </TableCell>
               )}
               <TableCell className="font-mono text-sm max-w-xs truncate">

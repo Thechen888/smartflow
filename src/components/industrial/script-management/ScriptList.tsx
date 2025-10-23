@@ -41,12 +41,12 @@ const ScriptList: React.FC<ScriptListProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {scripts.map((script) => (
+          {scripts.map((script, index) => (
             <TableRow key={script.id}>
               <TableCell className="font-medium">{script.name}</TableCell>
               {scriptType === 'FLOW' && (
                 <TableCell className="text-center">
-                  {script.priority !== undefined ? script.priority : '-'}
+                  {index + 1}
                 </TableCell>
               )}
               <TableCell className="font-mono text-sm max-w-xs truncate">
@@ -86,7 +86,7 @@ const ScriptList: React.FC<ScriptListProps> = ({
                         size="sm"
                         onClick={() => onMoveUp?.(script.id)}
                         title="上调"
-                        disabled={!onMoveUp || scripts.findIndex(s => s.id === script.id) === 0}
+                        disabled={!onMoveUp || index === 0}
                       >
                         <ArrowUp className="h-4 w-4 text-green-500" />
                       </Button>
@@ -95,7 +95,7 @@ const ScriptList: React.FC<ScriptListProps> = ({
                         size="sm"
                         onClick={() => onMoveDown?.(script.id)}
                         title="下调"
-                        disabled={!onMoveDown || scripts.findIndex(s => s.id === script.id) === scripts.length - 1}
+                        disabled={!onMoveDown || index === scripts.length - 1}
                       >
                         <ArrowDown className="h-4 w-4 text-yellow-500" />
                       </Button>

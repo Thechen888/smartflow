@@ -47,9 +47,7 @@ const ScriptManagement = () => {
   const [activeTab, setActiveTab] = useState<'CYCLIC' | 'FLOW'>('CYCLIC');
 
   const cyclicScripts = scripts.filter(script => script.scriptType === 'CYCLIC');
-  const flowScripts = scripts
-    .filter(script => script.scriptType === 'FLOW')
-    .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+  const flowScripts = scripts.filter(script => script.scriptType === 'FLOW');
 
   const addScript = (script: Omit<Script, 'id'>) => {
     const newScript: Script = {
@@ -75,43 +73,51 @@ const ScriptManagement = () => {
     setShowForm(true);
   };
 
-  // Priority management functions
+  // Priority management functions - now based on array position
   const movePriorityUp = (id: string) => {
     const scriptIndex = flowScripts.findIndex(s => s.id === id);
     if (scriptIndex > 0) {
-      const newPriority = flowScripts[scriptIndex - 1].priority || 0;
-      const currentScript = scripts.find(s => s.id === id);
-      if (currentScript) {
-        setScripts(scripts.map(s => 
-          s.id === id ? { ...s, priority: newPriority } : 
-          s.id === flowScripts[scriptIndex - 1].id ? { ...s, priority: (currentScript.priority || 0) } : s
-        ));
-      }
+      const newScripts = [...scripts];
+      const targetIndex = newScripts.findIndex(s => s.id === flowScripts[scriptIndex - 1].id);
+      const currentIndex = newScripts.findIndex(s => s.id === id);
+      [newScripts[targetIndex], newScripts[currentIndex]] = [newScripts[currentIndex], newScripts[targetIndex]];
+      setScripts(newScripts);
     }
   };
 
   const movePriorityDown = (id: string) => {
     const scriptIndex = flowScripts.findIndex(s => s.id === id);
     if (scriptIndex < flowScripts.length - 1) {
-      const newPriority = flowScripts[scriptIndex + 1].priority || 0;
-      const currentScript = scripts.find(s => s.id === id);
-      if (currentScript) {
-        setScripts(scripts.map(s => 
-          s.id === id ? { ...s, priority: newPriority } : 
-          s.id === flowScripts[scriptIndex + 1].id ? { ...s, priority: (currentScript.priority || 0) } : s
-        ));
-      }
+      const newScripts = [...scripts];
+      const targetIndex = newScripts.findIndex(s => s.id === flowScripts[scriptIndex + 1].id);
+      const currentIndex = newScripts.findIndex(s => s.id === id);
+      [newScripts[currentIndex], newScripts[targetIndex]] = [newScripts[targetIndex], newScripts[currentIndex]];
+      setScripts(newScripts);
     }
   };
 
   const moveToTop = (id: string) => {
-    const minPriority = Math.min(...flowScripts.map(s => s.priority || 0), 0) - 1;
-    setScripts(scripts.map(s => s.id === id ? { ...s, priority: minPriority } : s));
+    const newScripts = scripts.filter(s => s.scriptType !== 'FLOW');
+    const targetScript = scripts.find(s => s.id === id);
+    const otherFlowScripts = flowScripts.filter(s => s.id !== id);
+    if (targetScript) {
+      newScripts.push(targetScript, ...otherFlowScripts);
+    } else {
+      newScripts.push(...flowScripts);
+    }
+    setScripts(newScripts);
   };
 
   const moveToBottom = (id: string) => {
-    const maxPriority = Math.max(...flowScripts.map(s => s.priority || 0), 0) + 1;
-    setScripts(scripts.map(s => s.id === id ? { ...s, priority: maxPriority } : s));
+    const newScripts = scripts.filter(s => s.scriptType !== 'FLOW');
+    const targetScript = scripts.find(s => s.id === id);
+    const otherFlowScripts = flowScripts.filter(s => s.id !== id);
+    if (targetScript) {
+      newScripts.push(...otherFlowScripts, targetScript);
+    } else {
+      newScripts.push(...flowScripts);
+    }
+    setScripts(newScripts);
   };
 
   return (
@@ -142,7 +148,7 @@ const ScriptManagement = () => {
             setEditingScript(null);
           }}
         />
-      ) : (
+      ) else (
         <Card>
           <ScriptList
             scripts={activeTab === 'CYCLIC' ? cyclicScripts : flowScripts}

@@ -1,9 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, ArrowUp, ArrowDown, ArrowUpToLine, ArrowDownToLine } from 'lucide-react';
+import { Edit, Trash2, ArrowUpToLine, ArrowDownToLine, GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Script } from './ScriptForm';
 
@@ -23,11 +23,60 @@ const ScriptList: React.FC<ScriptListProps> = ({
   onEdit,
   onDelete,
   scriptType,
-  onMoveUp,
-  onMoveDown,
   onMoveToTop,
   onMoveToBottom
 }) => {
+  const [draggedScript, setDraggedScript] = useState<Script | null>(null);
+
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, script: Script) => {
+    if (scriptType === 'FLOW') {
+      e.dataTransfer.setData('text/plain', script.id);
+      setDraggedScript(script);
+      e.currentTarget.classList.add('opacity-50');
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLTableRowElement>) => {
+    if (scriptType === 'FLOW') {
+      e.currentTarget.classList.remove('opacity-50');
+      setDraggedScript(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>) => {
+    if (scriptType === 'FLOW') {
+      e.preventDefault();
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, targetScript: Script) => {
+    if (scriptType === 'FLOW' && draggedScript && draggedScript.id !== targetScript.id) {
+      e.preventDefault();
+      
+      // Find the current positions
+      const flowScripts = scripts.filter(s => s.scriptType === 'FLOW');
+      const draggedIndex = flowScripts.findIndex(s => s.id === draggedScript.id);
+      const targetIndex = flowScripts.findIndex(s => s.id === targetScript.id);
+      
+      if (draggedIndex !== -1 && targetIndex !== -1) {
+        // Create new priority array
+        const newScripts = [...scripts];
+        const draggedScriptObj = newScripts.find(s => s.id === draggedScript.id);
+        const targetScriptObj = newScripts.find(s => s.id === targetScript.id);
+        
+        if (draggedScriptObj && targetScriptObj) {
+          // Swap priorities
+          const tempPriority = draggedScriptObj.priority;
+          draggedScriptObj.priority = targetScriptObj.priority;
+          targetScriptObj.priority = tempPriority;
+          
+          // Update the scripts array
+          setScripts => newScripts;
+        }
+      }
+    }
+  };
+
   return (
     <div className="border rounded-lg">
       <Table>
@@ -43,7 +92,14 @@ const ScriptList: React.FC<ScriptListProps> = ({
         </TableHeader>
         <TableBody>
           {scripts.map((script, index) => (
-            <TableRow key={script.id}>
+            <TableRow 
+              key={script.id}
+              draggable={scriptType === 'FLOW'}
+              onDragStart={(e) => handleDragStart(e, script)}
+              onDragEnd={handleDragEnd}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, script)}
+            >
               <TableCell className="font-medium">{script.name}</TableCell>
               {scriptType === 'FLOW' && (
                 <TableCell className="text-center">
@@ -90,29 +146,14 @@ const ScriptList: React.FC<ScriptListProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onMoveUp?.(script.id)}
-                        title="上调"
-                        disabled={!onMoveUp || index === 0}
-                      >
-                        <ArrowUp className="h-4 w-4 text-green-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onMoveDown?.(script.id)}
-                        title="下调"
-                        disabled={!onMoveDown || index === scripts.length - 1}
-                      >
-                        <ArrowDown className="h-4 w-4 text-yellow-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
                         onClick={() => onMoveToBottom?.(script.id)}
                         title="置底"
                       >
                         <ArrowDownToLine className="h-4 w-4 text-purple-500" />
                       </Button>
+                      <div className="cursor-grab">
+                        <GripVertical className="h-4 w-4 text-gray-400" />
+                      </div>
                     </>
                   )}
                 </div>

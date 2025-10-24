@@ -93,7 +93,7 @@ const ScriptForm: React.FC<ScriptFormProps> = ({
         <div className="mb-4">
           <Label>Python脚本 *</Label>
           <div className="text-xs text-gray-500 mb-2">
-            已配置的变量名称：SOH，Humidity
+            已配置的纯脚本变量名称：MODBUS TCP 服务端—电池健康度—SOH，MODBUS RTU 服务端—湿度—Humidity
           </div>
           <div className="text-xs text-green-600 mb-2 font-medium">
             可用字典: localvars (当前脚本), globalvars (全局共享)

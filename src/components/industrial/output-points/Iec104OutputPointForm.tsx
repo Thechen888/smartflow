@@ -9,24 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
 interface Iec104OutputPoint {
   id: string;
-  address: number;
-  type: 'single' | 'double' | 'step' | 'setpoint';
-  name: string;
-  dataType: 'BOOLEAN' | 'INT32' | 'FLOAT32';
-  controlType: 'DIRECT' | 'SELECT_EXECUTE';
-  operationLevel: 'OPERATOR' | 'ENGINEER' | 'ADMIN';
-  min?: number;
-  max?: number;
-  defaultValue?: string;
-  description?: string;
-  selectTimeout?: number;
-  executeTimeout?: number;
+  address: string;
+  dataType: string;
+  scanRate: number;
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
@@ -42,19 +32,12 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   points,
   onPointsChange
 }) => {
-  const [activeTab, setActiveTab] = useState('single');
   const [isAdding, setIsAdding] = useState(false);
   const [editingPoint, setEditingPoint] = useState<Iec104OutputPoint | null>(null);
   const [newPoint, setNewPoint] = useState<Omit<Iec104OutputPoint, 'id'>>({
-    address: 1001,
-    type: 'single',
-    name: '',
-    dataType: 'BOOLEAN',
-    controlType: 'SELECT_EXECUTE',
-    operationLevel: 'OPERATOR',
-    description: '',
-    selectTimeout: 10000,
-    executeTimeout: 15000,
+    address: '1001',
+    dataType: 'M_SP_NA_1',
+    scanRate: 500,
     variableName: '' // 初始化变量名称字段
   });
 
@@ -67,23 +50,16 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   });
 
   const addPoint = () => {
-    if (newPoint.name) {
+    if (newPoint.address) {
       const point: Iec104OutputPoint = {
         ...newPoint,
-        id: Date.now().toString(),
-        type: activeTab as 'single' | 'double' | 'step' | 'setpoint'
+        id: Date.now().toString()
       };
       onPointsChange([...points, point]);
       setNewPoint({ 
-        address: 1001, 
-        type: activeTab as 'single' | 'double' | 'step' | 'setpoint', 
-        name: '', 
-        dataType: 'BOOLEAN', 
-        controlType: 'SELECT_EXECUTE', 
-        operationLevel: 'OPERATOR',
-        description: '',
-        selectTimeout: 10000,
-        executeTimeout: 15000,
+        address: '1001', 
+        dataType: 'M_SP_NA_1', 
+        scanRate: 500,
         variableName: '' // 重置变量名称字段
       });
       setIsAdding(false);
@@ -170,18 +146,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     event.target.value = '';
   };
 
-  const filteredPoints = points.filter(point => point.type === activeTab);
-
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      'single': '单点命令 (C_SC_NA_1)',
-      'double': '双点命令 (C_DC_NA_1)',
-      'step': '设定点命令 (C_SE_NA_1/C_SE_NB_1/C_SE_NC_1)',
-      'setpoint': '设定点信息 (C_SE_NA_1/C_SE_NB_1/C_SE_NC_1)'
-    };
-    return labels[type] || type;
-  };
-
   const getLogicTypeLabel = (type: 'BIND_INPUT' | 'SCRIPT_ONLY' | undefined) => {
     if (!type) return '绑定输入点位';
     return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
@@ -206,14 +170,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="single">单点命令</TabsTrigger>
-            <TabsTrigger value="double">双点命令</TabsTrigger>
-            <TabsTrigger value="step">步位置命令</TabsTrigger>
-            <TabsTrigger value="setpoint">设定点命令</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <CardTitle>IEC104 输出点位配置</CardTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
             <label className="cursor-pointer flex items-center">
@@ -231,225 +188,78 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
             <Download className="mr-1 h-3 w-3" />
             导出
           </Button>
+          <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
+            <Plus className="mr-1 h-3 w-3" />
+            {isAdding ? '取消' : '添加点位'}
+          </Button>
         </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>{getTypeLabel(activeTab)}</CardTitle>
-            <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
-              <Plus className="mr-1 h-3 w-3" />
-              {isAdding ? '取消' : '添加点位'}
-            </Button>
-          </div>
-        </CardHeader>
         <CardContent>
           {(isAdding || editingPoint) && (
             <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">信息对象地址</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>信息对象地址 *</Label>
                   <Input
-                    type="number"
-                    placeholder="信息对象地址"
-                    title="IEC104信息对象地址"
                     value={editingPoint ? editingPoint.address : newPoint.address}
                     onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, address: parseInt(e.target.value) || 1001 })
-                      : setNewPoint({ ...newPoint, address: parseInt(e.target.value) || 1001 })
+                      ? setEditingPoint({ ...editingPoint, address: e.target.value })
+                      : setNewPoint({ ...newPoint, address: e.target.value })
                     }
+                    placeholder="1001"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">名称</Label>
-                  <Input
-                    placeholder="点位名称"
-                    title="输出点位名称"
-                    value={editingPoint ? editingPoint.name : newPoint.name}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, name: e.target.value })
-                      : setNewPoint({ ...newPoint, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">数据类型</Label>
+                <div>
+                  <Label>数据类型 *</Label>
                   <Select
                     value={editingPoint ? editingPoint.dataType : newPoint.dataType}
                     onValueChange={(value) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, dataType: value as any })
-                      : setNewPoint({ ...newPoint, dataType: value as any })
+                      ? setEditingPoint({ ...editingPoint, dataType: value })
+                      : setNewPoint({ ...newPoint, dataType: value })
                     }
                   >
-                    <SelectTrigger className="w-full" title="输出数据类型">
+                    <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {activeTab === 'single' || activeTab === 'double' ? (
-                        <SelectItem value="BOOLEAN">BOOLEAN</SelectItem>
-                      ) : (
-                        <>
-                          <SelectItem value="BOOLEAN">BOOLEAN</SelectItem>
-                          <SelectItem value="INT32">INT32</SelectItem>
-                          <SelectItem value="FLOAT32">FLOAT32</SelectItem>
-                        </>
-                      )}
+                      <SelectItem value="M_SP_NA_1">单点信息 (M_SP_NA_1)</SelectItem>
+                      <SelectItem value="M_DP_NA_1">双点信息 (M_DP_NA_1)</SelectItem>
+                      <SelectItem value="M_ST_NA_1">步位置信息 (M_ST_NA_1)</SelectItem>
+                      <SelectItem value="M_ME_NA_1">测量值-归一化值 (M_ME_NA_1)</SelectItem>
+                      <SelectItem value="M_ME_NB_1">测量值-标度化值 (M_ME_NB_1)</SelectItem>
+                      <SelectItem value="M_ME_NC_1">测量值-短浮点数 (M_ME_NC_1)</SelectItem>
+                      <SelectItem value="M_IT_NA_1">累计量 (M_IT_NA_1)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">控制类型</Label>
-                  <Select
-                    value={editingPoint ? editingPoint.controlType : newPoint.controlType}
-                    onValueChange={(value) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, controlType: value as any })
-                      : setNewPoint({ ...newPoint, controlType: value as any })
-                    }
-                  >
-                    <SelectTrigger className="w-full" title="控制操作类型">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DIRECT">直接控制</SelectItem>
-                      <SelectItem value="SELECT_EXECUTE">选择-执行</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-xs">操作级别</Label>
-                  <Select
-                    value={editingPoint ? editingPoint.operationLevel : newPoint.operationLevel}
-                    onValueChange={(value) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, operationLevel: value as any })
-                      : setNewPoint({ ...newPoint, operationLevel: value as any })
-                    }
-                  >
-                    <SelectTrigger className="w-full" title="操作权限级别">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="OPERATOR">操作员</SelectItem>
-                      <SelectItem value="ENGINEER">工程师</SelectItem>
-                      <SelectItem value="ADMIN">管理员</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">默认值</Label>
+                <div>
+                  <Label>扫描频率(ms)</Label>
                   <Input
-                    placeholder="默认值"
-                    title="点位默认值"
-                    value={editingPoint ? (editingPoint.defaultValue ?? '') : (newPoint.defaultValue ?? '')}
+                    type="number"
+                    value={editingPoint ? editingPoint.scanRate : newPoint.scanRate}
                     onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, defaultValue: e.target.value })
-                      : setNewPoint({ ...newPoint, defaultValue: e.target.value })
+                      ? setEditingPoint({ ...editingPoint, scanRate: parseInt(e.target.value) || 500 })
+                      : setNewPoint({ ...newPoint, scanRate: parseInt(e.target.value) || 500 })
                     }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">描述</Label>
-                  <Input
-                    placeholder="点位描述"
-                    title="输出点位描述"
-                    value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, description: e.target.value })
-                      : setNewPoint({ ...newPoint, description: e.target.value })
-                    }
+                    placeholder="500"
                   />
                 </div>
               </div>
               
-              {(activeTab === 'step' || activeTab === 'setpoint') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">最小值</Label>
-                    <Input
-                      type="number"
-                      placeholder="最小值"
-                      title="有效范围最小值"
-                      value={editingPoint ? (editingPoint.min ?? '') : (newPoint.min ?? '')}
-                      onChange={(e) => editingPoint 
-                        ? setEditingPoint({ ...editingPoint, min: e.target.value ? parseFloat(e.target.value) : undefined })
-                        : setNewPoint({ ...newPoint, min: e.target.value ? parseFloat(e.target.value) : undefined })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">最大值</Label>
-                    <Input
-                      type="number"
-                      placeholder="最大值"
-                      title="有效范围最大值"
-                      value={editingPoint ? (editingPoint.max ?? '') : (newPoint.max ?? '')}
-                      onChange={(e) => editingPoint 
-                        ? setEditingPoint({ ...editingPoint, max: e.target.value ? parseFloat(e.target.value) : undefined })
-                        : setNewPoint({ ...newPoint, max: e.target.value ? parseFloat(e.target.value) : undefined })
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {editingPoint?.controlType === 'SELECT_EXECUTE' || newPoint.controlType === 'SELECT_EXECUTE' ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">选择超时(ms)</Label>
-                    <Input
-                      type="number"
-                      placeholder="选择超时时间"
-                      title="选择命令超时时间（毫秒）"
-                      value={editingPoint ? (editingPoint.selectTimeout ?? 10000) : (newPoint.selectTimeout ?? 10000)}
-                      onChange={(e) => editingPoint 
-                        ? setEditingPoint({ ...editingPoint, selectTimeout: parseInt(e.target.value) || 10000 })
-                        : setNewPoint({ ...newPoint, selectTimeout: parseInt(e.target.value) || 10000 })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">执行超时(ms)</Label>
-                    <Input
-                      type="number"
-                      placeholder="执行超时时间"
-                      title="执行命令超时时间（毫秒）"
-                      value={editingPoint ? (editingPoint.executeTimeout ?? 15000) : (newPoint.executeTimeout ?? 15000)}
-                      onChange={(e) => editingPoint 
-                        ? setEditingPoint({ ...editingPoint, executeTimeout: parseInt(e.target.value) || 15000 })
-                        : setNewPoint({ ...newPoint, executeTimeout: parseInt(e.target.value) || 15000 })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">变量名称</Label>
-                    <Input
-                      placeholder="变量名称"
-                      title="输出变量名称"
-                      value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
-                      onChange={(e) => editingPoint 
-                        ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
-                        : setNewPoint({ ...newPoint, variableName: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Label className="text-xs">变量名称</Label>
-                  <Input
-                    placeholder="变量名称"
-                    title="输出变量名称"
-                    value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
-                      : setNewPoint({ ...newPoint, variableName: e.target.value })
-                    }
-                  />
-                </div>
-              )}
+              <div className="space-y-1">
+                <Label className="text-xs">变量名称</Label>
+                <Input
+                  placeholder="变量名称"
+                  title="输出变量名称"
+                  value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
+                  onChange={(e) => editingPoint 
+                    ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
+                    : setNewPoint({ ...newPoint, variableName: e.target.value })
+                  }
+                />
+              </div>
               
               <div className="flex justify-end space-x-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => {
@@ -458,7 +268,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                 }}>
                   取消
                 </Button>
-                <Button size="sm" onClick={editingPoint ? updatePoint : addPoint} disabled={!editingPoint && !newPoint.name}>
+                <Button size="sm" onClick={editingPoint ? updatePoint : addPoint} disabled={!editingPoint && !newPoint.address}>
                   {editingPoint ? '更新' : '添加'}
                 </Button>
               </div>
@@ -469,41 +279,26 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>地址</TableHead>
-                  <TableHead>名称</TableHead>
+                  <TableHead>信息对象地址</TableHead>
                   <TableHead>数据类型</TableHead>
-                  <TableHead>控制类型</TableHead>
-                  <TableHead>操作级别</TableHead>
-                  <TableHead>默认值</TableHead>
+                  <TableHead>扫描频率(ms)</TableHead>
                   <TableHead>变量名称</TableHead>
-                  <TableHead>描述</TableHead>
                   <TableHead>逻辑类型</TableHead>
                   <TableHead>绑定输入点位</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPoints.map((point) => (
+                {points.map((point) => (
                   <TableRow key={point.id}>
                     <TableCell>{point.address}</TableCell>
-                    <TableCell className="font-medium">{point.name}</TableCell>
                     <TableCell>
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                         {point.dataType}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      {point.controlType === 'DIRECT' && '直接控制'}
-                      {point.controlType === 'SELECT_EXECUTE' && '选择-执行'}
-                    </TableCell>
-                    <TableCell>
-                      {point.operationLevel === 'OPERATOR' && '操作员'}
-                      {point.operationLevel === 'ENGINEER' && '工程师'}
-                      {point.operationLevel === 'ADMIN' && '管理员'}
-                    </TableCell>
-                    <TableCell>{point.defaultValue || '-'}</TableCell>
+                    <TableCell>{point.scanRate}</TableCell>
                     <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
-                    <TableCell className="text-xs">{point.description || '-'}</TableCell>
                     <TableCell className="text-xs">
                       {getLogicTypeLabel(point.logicType)}
                     </TableCell>
@@ -544,9 +339,9 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
             </Table>
           </div>
 
-          {filteredPoints.length === 0 && (
+          {points.length === 0 && (
             <div className="text-center py-4 text-gray-500">
-              暂无{getTypeLabel(activeTab)}点位
+              暂无IEC104输出点位
             </div>
           )}
         </CardContent>

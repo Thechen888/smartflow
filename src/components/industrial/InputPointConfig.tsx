@@ -195,13 +195,8 @@ const InputPointConfig = () => {
         name: 'IEC104 客户端',
         protocolType: 'IEC104_CLIENT',
         description: '连接上级调度系统'
-      },
-      {
-        id: 'iec61850-client-1',
-        name: 'IEC61850 客户端',
-        protocolType: 'IEC61850_CLIENT',
-        description: '连接远程IED设备'
       }
+      // Removed IEC61850_CLIENT node
     ];
     setNodes(defaultNodes);
     if (defaultNodes.length > 0) {

@@ -250,13 +250,8 @@ const OutputPointConfig = () => {
         name: 'IEC104 服务端',
         protocolType: 'IEC104_SERVER',
         description: '数据采集服务端'
-      },
-      {
-        id: 'iec61850-server-1',
-        name: 'IEC61850 服务端',
-        protocolType: 'IEC61850_SERVER',
-        description: '变电站IED服务端'
       }
+      // Removed IEC61850_SERVER node
     ];
     setNodes(defaultNodes);
     if (defaultNodes.length > 0) {

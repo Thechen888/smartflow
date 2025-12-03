@@ -30,6 +30,7 @@ interface Iec61850OutputPoint {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
+  variableName?: string; // 新增变量名称字段
 }
 
 interface Iec61850OutputPointFormProps {
@@ -52,7 +53,8 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
     controlType: 'SELECT_BEFORE_OPERATE',
     operationLevel: 'OPERATOR',
     description: '',
-    sboTimeout: 10000
+    sboTimeout: 10000,
+    variableName: '' // 初始化变量名称字段
   });
 
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -79,7 +81,8 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
         controlType: 'SELECT_BEFORE_OPERATE', 
         operationLevel: 'OPERATOR',
         description: '',
-        sboTimeout: 10000
+        sboTimeout: 10000,
+        variableName: '' // 重置变量名称字段
       });
       setIsAdding(false);
     }
@@ -395,7 +398,7 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
               )}
               
               {editingPoint?.controlType === 'SELECT_BEFORE_OPERATE' || newPoint.controlType === 'SELECT_BEFORE_OPERATE' ? (
-                <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <div className="space-y-1">
                     <Label className="text-xs">选择操作超时(ms)</Label>
                     <Input
@@ -409,8 +412,33 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
                       }
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">变量名称</Label>
+                    <Input
+                      placeholder="变量名称"
+                      title="输出变量名称"
+                      value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
+                      onChange={(e) => editingPoint 
+                        ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
+                        : setNewPoint({ ...newPoint, variableName: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
-              ) : null;
+              ) : (
+                <div className="space-y-1">
+                  <Label className="text-xs">变量名称</Label>
+                  <Input
+                    placeholder="变量名称"
+                    title="输出变量名称"
+                    value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
+                      : setNewPoint({ ...newPoint, variableName: e.target.value })
+                    }
+                  />
+                </div>
+              )}
               
               {editingPoint?.controlType === 'ENHANCED_DIRECT' || newPoint.controlType === 'ENHANCED_DIRECT' ? (
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
@@ -451,6 +479,7 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
                   <TableHead>控制类型</TableHead>
                   <TableHead>操作级别</TableHead>
                   <TableHead>默认值</TableHead>
+                  <TableHead>变量名称</TableHead>
                   <TableHead>描述</TableHead>
                   <TableHead>逻辑类型</TableHead>
                   <TableHead>绑定输入点位</TableHead>
@@ -478,6 +507,7 @@ const Iec61850OutputPointForm: React.FC<Iec61850OutputPointFormProps> = ({
                       {point.operationLevel === 'ADMIN' && '管理员'}
                     </TableCell>
                     <TableCell>{point.defaultValue || '-'}</TableCell>
+                    <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">{point.description || '-'}</TableCell>
                     <TableCell className="text-xs">
                       {getLogicTypeLabel(point.logicType)}

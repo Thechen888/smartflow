@@ -8,12 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Save, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export interface Script {
   id: string;
   name: string;
   scriptContent: string;
-  scriptType: 'FLOW';
+  scriptType: 'CYCLIC' | 'FLOW';
+  executeRate?: number;
   enabled?: boolean;
 }
 
@@ -33,7 +35,8 @@ const ScriptForm: React.FC<ScriptFormProps> = ({
   const [formData, setFormData] = useState<Omit<Script, 'id'> | Script>(script || {
     name: '',
     scriptContent: '',
-    scriptType: 'FLOW',
+    scriptType: 'CYCLIC',
+    executeRate: 1000,
     enabled: true
   });
 
@@ -55,6 +58,37 @@ const ScriptForm: React.FC<ScriptFormProps> = ({
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
         </div>
+
+        <div className="mb-4">
+          <Label>脚本类型 *</Label>
+          <Select
+            value={formData.scriptType}
+            onValueChange={(value) => setFormData({ 
+              ...formData, 
+              scriptType: value as 'CYCLIC' | 'FLOW',
+              executeRate: value === 'CYCLIC' ? (formData.executeRate || 1000) : undefined
+            })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="CYCLIC">循环脚本</SelectItem>
+              <SelectItem value="FLOW">流脚本</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {formData.scriptType === 'CYCLIC' && (
+          <div className="mb-4">
+            <Label>执行频率(ms)</Label>
+            <Input
+              type="number"
+              value={formData.executeRate || 1000}
+              onChange={(e) => setFormData({ ...formData, executeRate: parseInt(e.target.value) || 1000 })}
+            />
+          </div>
+        )}
 
         <div className="mb-4">
           <Label>Python脚本 *</Label>

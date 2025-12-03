@@ -3,21 +3,30 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Play, Pause, Square, RotateCcw } from 'lucide-react';
 import ScriptForm from './script-management/ScriptForm';
 import ScriptList from './script-management/ScriptList';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 interface Script {
   id: string;
   name: string;
   scriptContent: string;
-  scriptType: 'FLOW';
+  scriptType: 'CYCLIC' | 'FLOW';
+  executeRate?: number;
   priority?: number;
 }
 
 const ScriptManagement = () => {
   const [scripts, setScripts] = useState<Script[]>([
+    {
+      id: '1',
+      name: '平均温度计算',
+      scriptContent: '# 计算两个温度传感器的平均值\nTEMP1 = dev1.get("TEMP1")\nTEMP2 = dev1.get("TEMP2")\nresult = (TEMP1 + TEMP2) / 2',
+      scriptType: 'CYCLIC',
+      executeRate: 1000
+    },
     {
       id: '2',
       name: '电机控制逻辑',
@@ -36,8 +45,10 @@ const ScriptManagement = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editingScript, setEditingScript] = useState<Script | null>(null);
-  const [activeTab, setActiveTab] = useState<'FLOW'>('FLOW');
+  const [activeTab, setActiveTab] = useState<'CYCLIC' | 'FLOW'>('CYCLIC');
+  const [flowStatus, setFlowStatus] = useState<'stopped' | 'running' | 'paused'>('stopped');
 
+  const cyclicScripts = scripts.filter(script => script.scriptType === 'CYCLIC');
   const flowScripts = scripts
     .filter(script => script.scriptType === 'FLOW')
     .sort((a, b) => (a.priority || 0) - (b.priority || 0));
@@ -161,6 +172,35 @@ const ScriptManagement = () => {
     setScripts(newScripts);
   };
 
+  const handleStartFlow = () => {
+    setFlowStatus('running');
+  };
+
+  const handlePauseFlow = () => {
+    setFlowStatus('paused');
+  };
+
+  const handleStopFlow = () => {
+    setFlowStatus('stopped');
+  };
+
+  const handleResumeFlow = () => {
+    setFlowStatus('running');
+  };
+
+  const getStatusBadge = () => {
+    switch (flowStatus) {
+      case 'running':
+        return <Badge variant="default" className="bg-green-500 hover:bg-green-600">运行中</Badge>;
+      case 'paused':
+        return <Badge variant="secondary" className="bg-yellow-500 hover:bg-yellow-600 text-white">已暂停</Badge>;
+      case 'stopped':
+        return <Badge variant="secondary" className="bg-gray-500 hover:bg-gray-600">已停止</Badge>;
+      default:
+        return <Badge variant="secondary">未知</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -171,9 +211,54 @@ const ScriptManagement = () => {
         </Button>
       </div>
 
-      {/* Script type tabs - only FLOW tab remains */}
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'FLOW')}>
+      {/* Flow script control panel */}
+      {activeTab === 'FLOW' && flowScripts.length > 0 && (
+        <Card className="p-4 bg-gray-50">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">流脚本状态:</span>
+              {getStatusBadge()}
+            </div>
+            <div className="flex gap-2">
+              {flowStatus === 'stopped' && (
+                <Button onClick={handleStartFlow} size="sm">
+                  <Play className="mr-1 h-3 w-3" />
+                  启动
+                </Button>
+              )}
+              {flowStatus === 'running' && (
+                <>
+                  <Button onClick={handlePauseFlow} variant="outline" size="sm">
+                    <Pause className="mr-1 h-3 w-3" />
+                    暂停
+                  </Button>
+                  <Button onClick={handleStopFlow} variant="outline" size="sm">
+                    <Square className="mr-1 h-3 w-3" />
+                    停止
+                  </Button>
+                </>
+              )}
+              {flowStatus === 'paused' && (
+                <>
+                  <Button onClick={handleResumeFlow} size="sm">
+                    <RotateCcw className="mr-1 h-3 w-3" />
+                    恢复
+                  </Button>
+                  <Button onClick={handleStopFlow} variant="outline" size="sm">
+                    <Square className="mr-1 h-3 w-3" />
+                    停止
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Script type tabs */}
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'CYCLIC' | 'FLOW')}>
         <TabsList>
+          <TabsTrigger value="CYCLIC">循环脚本</TabsTrigger>
           <TabsTrigger value="FLOW">流脚本</TabsTrigger>
         </TabsList>
       </Tabs>
@@ -191,7 +276,7 @@ const ScriptManagement = () => {
       ) : (
         <Card>
           <ScriptList
-            scripts={flowScripts}
+            scripts={activeTab === 'CYCLIC' ? cyclicScripts : flowScripts}
             onEdit={editScript}
             onDelete={deleteScript}
             scriptType={activeTab}
@@ -205,7 +290,7 @@ const ScriptManagement = () => {
 
       {scripts.filter(s => s.scriptType === activeTab).length === 0 && !showForm && (
         <div className="text-center py-8 text-gray-500">
-          暂无流脚本，请添加流脚本开始配置
+          {activeTab === 'CYCLIC' ? '暂无循环脚本，请添加循环脚本开始配置' : '暂无流脚本，请添加流脚本开始配置'}
         </div>
       )}
     </div>

@@ -20,7 +20,6 @@ interface Iec104OutputPoint {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string; // 新增变量名称字段
 }
 
 interface Iec104OutputPointFormProps {
@@ -37,8 +36,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   const [newPoint, setNewPoint] = useState<Omit<Iec104OutputPoint, 'id'>>({
     address: '1001',
     dataType: 'M_SP_NA_1',
-    scanRate: 500,
-    variableName: '' // 初始化变量名称字段
+    scanRate: 500
   });
 
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -59,8 +57,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
       setNewPoint({ 
         address: '1001', 
         dataType: 'M_SP_NA_1', 
-        scanRate: 500,
-        variableName: '' // 重置变量名称字段
+        scanRate: 500
       });
       setIsAdding(false);
     }
@@ -248,19 +245,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                 </div>
               </div>
               
-              <div className="space-y-1">
-                <Label className="text-xs">变量名称</Label>
-                <Input
-                  placeholder="变量名称"
-                  title="输出变量名称"
-                  value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
-                  onChange={(e) => editingPoint 
-                    ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
-                    : setNewPoint({ ...newPoint, variableName: e.target.value })
-                  }
-                />
-              </div>
-              
               <div className="flex justify-end space-x-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => {
                   setIsAdding(false);
@@ -282,7 +266,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                   <TableHead>信息对象地址</TableHead>
                   <TableHead>数据类型</TableHead>
                   <TableHead>扫描频率(ms)</TableHead>
-                  <TableHead>变量名称</TableHead>
                   <TableHead>逻辑类型</TableHead>
                   <TableHead>绑定输入点位</TableHead>
                   <TableHead>操作</TableHead>
@@ -298,7 +281,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                       </span>
                     </TableCell>
                     <TableCell>{point.scanRate}</TableCell>
-                    <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">
                       {getLogicTypeLabel(point.logicType)}
                     </TableCell>

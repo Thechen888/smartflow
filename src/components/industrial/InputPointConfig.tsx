@@ -367,7 +367,9 @@ const InputPointConfig = () => {
         </CardContent>
       </Card>
 
-      {/* Point configuration      <CardContent>
+      {/* Point configuration */}
+      <Card>
+        <CardContent>
           {selectedNode && (
             <>
               {/* MODBUS TCP/RTU: show input and control tabs */}

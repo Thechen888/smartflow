@@ -389,4 +389,3 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
 };
 
 export default Iec104OutputPointForm;
-</dyad-file>

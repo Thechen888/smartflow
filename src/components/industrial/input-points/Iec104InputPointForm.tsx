@@ -12,8 +12,12 @@ import { Label } from '@/components/ui/label';
 interface Iec104InputPoint {
   id: string;
   address: string;
+  name: string;
   dataType: string;
-  scanRate: number;
+  min?: number;
+  max?: number;
+  multiplier?: number;
+  offset?: number;
   description?: string;
 }
 
@@ -31,13 +35,17 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [newPoint, setNewPoint] = useState<Omit<Iec104InputPoint, 'id'>>({
     address: '1001',
-    dataType: 'M_SP_NA_1',
-    scanRate: 500,
-    description: ''
+    name: '',
+    dataType: '单点遥信',
+    description: '',
+    min: undefined,
+    max: undefined,
+    multiplier: 1,
+    offset: 0
   });
 
   const addPoint = () => {
-    if (newPoint.address) {
+    if (newPoint.name) {
       const point: Iec104InputPoint = {
         ...newPoint,
         id: Date.now().toString()
@@ -45,9 +53,13 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
       onPointsChange([...points, point]);
       setNewPoint({ 
         address: '1001', 
-        dataType: 'M_SP_NA_1', 
-        scanRate: 500,
-        description: ''
+        name: '', 
+        dataType: '单点遥信',
+        description: '',
+        min: undefined,
+        max: undefined,
+        multiplier: 1,
+        offset: 0
       });
       setIsAdding(false);
     }
@@ -74,7 +86,7 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
 
   const exportConfig = () => {
     const config = { points };
-    const dataStr = JSON.stringify(config, null, 2);
+    const dataStr = JSON.stringify(config, null,2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -107,18 +119,18 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
 
   const filteredPoints = points.filter(point => 
     point.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    point.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     point.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getDataTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
-      'M_SP_NA_1': '单点信息 (M_SP_NA_1)',
-      'M_DP_NA_1': '双点信息 (M_DP_NA_1)',
-      'M_ST_NA_1': '步位置信息 (M_ST_NA_1)',
-      'M_ME_NA_1': '测量值-归一化值 (M_ME_NA_1)',
-      'M_ME_NB_1': '测量值-标度化值 (M_ME_NB_1)',
-      'M_ME_NC_1': '测量值-短浮点数 (M_ME_NC_1)',
-      'M_IT_NA_1': '累计量 (M_IT_NA_1)'
+      '单点遥信': '单点遥信',
+      '双点遥信': '双点遥信',
+      '测量值，规一化值': '测量值，规一化值',
+      '测量值，标度化值': '测量值，标度化值',
+      '测量值，短浮点数': '测量值，短浮点数',
+      '累计量': '累计量'
     };
     return labels[type] || type;
   };
@@ -173,9 +185,9 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>信息对象地址 *</Label>
+                <Label>地址 *</Label>
                 <Input
                   value={editingPoint ? editingPoint.address : newPoint.address}
                   onChange={(e) => editingPoint 
@@ -186,7 +198,18 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
                 />
               </div>
               <div className="space-y-2">
-                <Label>数据类型 *</Label>
+                <Label>名称 *</Label>
+                <Input
+                  value={editingPoint ? editingPoint.name : newPoint.name}
+                  onChange={(e) => editingPoint 
+                    ? setEditingPoint({ ...editingPoint, name: e.target.value })
+                    : setNewPoint({ ...newPoint, name: e.target.value })
+                  }
+                  placeholder="点位名称"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>类型 *</Label>
                 <Select
                   value={editingPoint ? editingPoint.dataType : newPoint.dataType}
                   onValueChange={(value) => editingPoint 
@@ -198,41 +221,81 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="M_SP_NA_1">单点信息 (M_SP_NA_1)</SelectItem>
-                    <SelectItem value="M_DP_NA_1">双点信息 (M_DP_NA_1)</SelectItem>
-                    <SelectItem value="M_ST_NA_1">步位置信息 (M_ST_NA_1)</SelectItem>
-                    <SelectItem value="M_ME_NA_1">测量值-归一化值 (M_ME_NA_1)</SelectItem>
-                    <SelectItem value="M_ME_NB_1">测量值-标度化值 (M_ME_NB_1)</SelectItem>
-                    <SelectItem value="M_ME_NC_1">测量值-短浮点数 (M_ME_NC_1)</SelectItem>
-                    <SelectItem value="M_IT_NA_1">累计量 (M_IT_NA_1)</SelectItem>
+                    <SelectItem value="单点遥信">单点遥信</SelectItem>
+                    <SelectItem value="双点遥信">双点遥信</SelectItem>
+                    <SelectItem value="测量值，规一化值">测量值，规一化值</SelectItem>
+                    <SelectItem value="测量值，标度化值">测量值，标度化值</SelectItem>
+                    <SelectItem value="测量值，短浮点数">测量值，短浮点数</SelectItem>
+                    <SelectItem value="累计量">累计量</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
               <div className="space-y-2">
-                <Label>扫描频率(ms)</Label>
+                <Label>最小值</Label>
                 <Input
                   type="number"
-                  value={editingPoint ? editingPoint.scanRate : newPoint.scanRate}
+                  value={editingPoint ? (editingPoint.min ?? '') : (newPoint.min ?? '')}
                   onChange={(e) => editingPoint 
-                    ? setEditingPoint({ ...editingPoint, scanRate: parseInt(e.target.value) || 500 })
-                    : setNewPoint({ ...newPoint, scanRate: parseInt(e.target.value) || 500 })
+                    ? setEditingPoint({ ...editingPoint, min: e.target.value ? parseFloat(e.target.value) : undefined })
+                    : setNewPoint({ ...newPoint, min: e.target.value ? parseFloat(e.target.value) : undefined })
                   }
-                  placeholder="500"
+                  placeholder="最小值"
                 />
               </div>
               <div className="space-y-2">
-                <Label>描述</Label>
+                <Label>最大值</Label>
                 <Input
-                  value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
+                  type="number"
+                  value={editingPoint ? (editingPoint.max ?? '') : (newPoint.max ?? '')}
                   onChange={(e) => editingPoint 
-                    ? setEditingPoint({ ...editingPoint, description: e.target.value })
-                    : setNewPoint({ ...newPoint, description: e.target.value })
+                    ? setEditingPoint({ ...editingPoint, max: e.target.value ? parseFloat(e.target.value) : undefined })
+                    : setNewPoint({ ...newPoint, max: e.target.value ? parseFloat(e.target.value) : undefined })
                   }
-                  placeholder="点位描述"
+                  placeholder="最大值"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>倍率</Label>
+                <Input
+                  type="number"
+                  value={editingPoint ? (editingPoint.multiplier ?? 1) : (newPoint.multiplier ?? 1)}
+                  onChange={(e) => editingPoint 
+                    ? setEditingPoint({ ...editingPoint, multiplier: e.target.value ? parseFloat(e.target.value) : 1 })
+                    : setNewPoint({ ...newPoint, multiplier: e.target.value ? parseFloat(e.target.value) : 1 })
+                  }
+                  placeholder="1"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>偏移量</Label>
+                <Input
+                  type="number"
+                  value={editingPoint ? (editingPoint.offset ?? 0) : (newPoint.offset ?? 0)}
+                  onChange={(e) => editingPoint 
+                    ? setEditingPoint({ ...editingPoint, offset: e.target.value ? parseFloat(e.target.value) : 0 })
+                    : setNewPoint({ ...newPoint, offset: e.target.value ? parseFloat(e.target.value) : 0 })
+                  }
+                  placeholder="0"
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-4">
+
+            <div className="mt-4">
+              <Label>描述</Label>
+              <Input
+                value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
+                onChange={(e) => editingPoint 
+                  ? setEditingPoint({ ...editingPoint, description: e.target.value })
+                  : setNewPoint({ ...newPoint, description: e.target.value })
+                }
+                placeholder="点位描述"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
               <Button 
                 variant="outline" 
                 onClick={() => {
@@ -244,7 +307,7 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
               </Button>
               <Button 
                 onClick={editingPoint ? updatePoint : addPoint}
-                disabled={!editingPoint && !newPoint.address}
+                disabled={!editingPoint && !newPoint.name}
               >
                 {editingPoint ? '更新' : '添加'}
               </Button>
@@ -259,9 +322,13 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>信息对象地址</TableHead>
-                <TableHead>数据类型</TableHead>
-                <TableHead>扫描频率(ms)</TableHead>
+                <TableHead>地址</TableHead>
+                <TableHead>名称</TableHead>
+                <TableHead>类型</TableHead>
+                <TableHead>最小值</TableHead>
+                <TableHead>最大值</TableHead>
+                <TableHead>倍率</TableHead>
+                <TableHead>偏移量</TableHead>
                 <TableHead>描述</TableHead>
                 <TableHead className="w-32">操作</TableHead>
               </TableRow>
@@ -271,11 +338,17 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
                 <TableRow key={point.id}>
                   <TableCell className="font-medium">{point.address}</TableCell>
                   <TableCell>
+                    <span className="font-medium">{point.name}</span>
+                  </TableCell>
+                  <TableCell>
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                       {getDataTypeLabel(point.dataType)}
                     </span>
                   </TableCell>
-                  <TableCell>{point.scanRate}</TableCell>
+                  <TableCell>{point.min ?? '-'}</TableCell>
+                  <TableCell>{point.max ?? '-'}</TableCell>
+                  <TableCell>{point.multiplier ?? '-'}</TableCell>
+                  <TableCell>{point.offset ?? '-'}</TableCell>
                   <TableCell className="text-sm">{point.description || '-'}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">

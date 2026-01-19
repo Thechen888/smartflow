@@ -53,6 +53,14 @@ interface ModbusRegister {
   hint?: string;
 }
 
+interface Iec104InputPoint {
+  id: string;
+  address: string;
+  dataType: string;
+  scanRate: number;
+  description?: string;
+}
+
 // Protocol display name mapping
 const getProtocolDisplayName = (protocol: ProtocolType): string => {
   const displayNames: Record<ProtocolType, string> = {
@@ -159,7 +167,25 @@ const InputPointConfig = () => {
   // Other protocol config states
   const [dlt645RtuConfig, setDlt645RtuConfig] = useState({ address: '000000000001', dataType: 'ENERGY', scanRate: 60000 });
   const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
-  const [iec104Config, setIec104Config] = useState({ address: '1001', dataType: 'M_SP_NA_1', scanRate: 500 });
+  
+  // Changed to array interface for IEC104
+  const [iec104Points, setIec104Points] = useState<Iec104InputPoint[]>([
+    {
+      id: '1',
+      address: '1001',
+      dataType: 'M_SP_NA_1',
+      scanRate: 500,
+      description: '单点信息'
+    },
+    {
+      id: '2',
+      address: '2001',
+      dataType: 'M_ME_NC_1',
+      scanRate: 1000,
+      description: '测量值-短浮点数'
+    }
+  ]);
+  
   const [iec61850Config, setIec61850Config] = useState({ address: 'LD1/LLN0.MX.Vol', dataType: 'FLOAT32', scanRate: 1000 });
 
   // Get nodes from parent component or global state
@@ -336,12 +362,8 @@ const InputPointConfig = () => {
               
               {selectedNode.protocolType === 'IEC104_CLIENT' && (
                 <Iec104InputPointForm
-                  address={iec104Config.address}
-                  dataType={iec104Config.dataType}
-                  scanRate={iec104Config.scanRate}
-                  onAddressChange={(address) => setIec104Config({ ...iec104Config, address })}
-                  onDataTypeChange={(dataType) => setIec104Config({ ...iec104Config, dataType })}
-                  onScanRateChange={(scanRate) => setIec104Config({ ...iec104Config, scanRate })}
+                  points={iec104Points}
+                  onPointsChange={setIec104Points}
                 />
               )}
               

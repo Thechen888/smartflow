@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 // Updated ProtocolType definition to include MODBUS Server
 type ProtocolType = 
@@ -53,11 +54,47 @@ interface ModbusRegister {
   hint?: string;
 }
 
+interface ModbusControlPoint {
+  id: string;
+  slaveId: number;
+  address: number;
+  type: 'uint16' | 'int16' | 'uint32' | 'int32' | 'ascii' | 'ascii8';
+  name: string;
+  reverseByteOrder: boolean;
+  comment: string;
+  min?: number;
+  max?: number;
+  asciiInvalid?: string;
+  a?: number;
+  b?: number;
+  hint?: string;
+  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputProtocol?: string;
+  boundInputPoint?: string;
+  variableName?: string;
+}
+
 interface Iec104InputPoint {
   id: string;
   address: string;
+  name: string;
   dataType: string;
-  scanRate: number;
+  min?: number;
+  max?: number;
+  multiplier?: number;
+  offset?: number;
+  description?: string;
+}
+
+interface Iec104ControlPoint {
+  id: string;
+  address: string;
+  name: string;
+  dataType: string;
+  min?: number;
+  max?: number;
+  multiplier?: number;
+  offset?: number;
   description?: string;
 }
 
@@ -93,14 +130,19 @@ import Dlt645RtuInputPointForm from './input-points/Dlt645RtuInputPointForm';
 import Dlt645TcpInputPointForm from './input-points/Dlt645TcpInputPointForm';
 import Iec104InputPointForm from './input-points/Iec104InputPointForm';
 import Iec61850InputPointForm from './input-points/Iec61850InputPointForm';
+// Import control point forms
+import ModbusTcpControlPointForm from './input-points/ModbusTcpControlPointForm';
+import ModbusRtuControlPointForm from './input-points/ModbusRtuControlPointForm';
+import Iec104ControlPointForm from './input-points/Iec104ControlPointForm';
 
 const InputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
   const [filterProtocol, setFilterProtocol] = useState<string>('ALL');
   const [filterName, setFilterName] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'input' | 'control'>('input');
   
-  // MODBUS unified config state
+  // MODBUS input config state
   const [modbusScanEntries, setModbusScanEntries] = useState<ModbusScanEntry[]>([
     { id: '1', slaveId: 1, start: 0, count: 27, type: 1, interval: 1000 },
     { id: '2', slaveId: 1, start: 101, count: 1, type: 1, interval: 1000 },
@@ -164,33 +206,44 @@ const InputPointConfig = () => {
     }
   ]);
 
-  // Other protocol config states
-  const [dlt645RtuConfig, setDlt645RtuConfig] = useState({ address: '000000000001', dataType: 'ENERGY', scanRate: 60000 });
-  const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
+  // MODBUS control points state
+  const [modbusTcpControlPoints, setModbusTcpControlPoints] = useState<ModbusControlPoint[]>([]);
+  const [modbusRtuControlPoints, setModbusRtuControlPoints] = useState<ModbusControlPoint[]>([]);
   
-  // Changed to array interface for IEC104
+  // IEC104 input config state
   const [iec104Points, setIec104Points] = useState<Iec104InputPoint[]>([
     {
       id: '1',
       address: '1001',
-      dataType: 'M_SP_NA_1',
-      scanRate: 500,
+      dataType: '单点遥信',
+      min: undefined,
+      max: undefined,
+      multiplier: 1,
+      offset: 0,
       description: '单点信息'
     },
     {
       id: '2',
       address: '2001',
-      dataType: 'M_ME_NC_1',
-      scanRate: 1000,
+      dataType: '测量值，短浮点数',
+      min: undefined,
+      max: undefined,
+      multiplier: 1,
+      offset: 0,
       description: '测量值-短浮点数'
     }
   ]);
+
+  // IEC104 control points state
+  const [iec104ControlPoints, setIec104ControlPoints] = useState<Iec104ControlPoint[]>([]);
   
+  // Other protocol config states
+  const [dlt645RtuConfig, setDlt645RtuConfig] = useState({ address: '000000000001', dataType: 'ENERGY', scanRate: 60000 });
+  const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
   const [iec61850Config, setIec61850Config] = useState({ address: 'LD1/LLN0.MX.Vol', dataType: 'FLOAT32', scanRate: 1000 });
 
   // Get nodes from parent component or global state
   useEffect(() => {
-    // In real application, this should come from global state or API
     const defaultNodes: CommunicationNode[] = [
       {
         id: 'modbus-tcp-1',
@@ -314,68 +367,104 @@ const InputPointConfig = () => {
         </CardContent>
       </Card>
 
-      {/* Point table takes bottom space */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {selectedNode ? `${selectedNode.name} - ${getProtocolDisplayName(selectedNode.protocolType)}` : '请选择设备'}
-          </CardTitle>
-          {selectedNode && selectedNode.description && (
-            <p className="text-sm text-gray-500 mt-2">{selectedNode.description}</p>
-          )}
-        </CardHeader>
-        <CardContent>
+      {/* Point configuration      <CardContent>
           {selectedNode && (
             <>
-              {/* MODBUS TCP/RTU Client use unified config */}
+              {/* MODBUS TCP/RTU: show input and control tabs */}
               {(selectedNode.protocolType === 'MODBUS_TCP' || 
                 selectedNode.protocolType === 'MODBUS_RTU') && (
-                <ModbusInputPointForm
-                  scanEntries={modbusScanEntries}
-                  registers={modbusRegisters}
-                  onScanEntriesChange={setModbusScanEntries}
-                  onRegistersChange={setModbusRegisters}
-                />
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'input' | 'control')}>
+                  <TabsList>
+                    <TabsTrigger value="input">输入点位</TabsTrigger>
+                    <TabsTrigger value="control">控制点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="input">
+                    <ModbusInputPointForm
+                      scanEntries={modbusScanEntries}
+                      registers={modbusRegisters}
+                      onScanEntriesChange={setModbusScanEntries}
+                      onRegistersChange={setModbusRegisters}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="control">
+                    {selectedNode.protocolType === 'MODBUS_TCP' && (
+                      <ModbusTcpControlPointForm
+                        points={modbusTcpControlPoints}
+                        onPointsChange={setModbusTcpControlPoints}
+                      />
+                    )}
+                    {selectedNode.protocolType === 'MODBUS_RTU' && (
+                      <ModbusRtuControlPointForm
+                        points={modbusRtuControlPoints}
+                        onPointsChange={setModbusRtuControlPoints}
+                      />
+                    )}
+                  </TabsContent>
+                </Tabs>
               )}
               
-              {selectedNode.protocolType === 'DLT645_RTU' && (
-                <Dlt645RtuInputPointForm
-                  address={dlt645RtuConfig.address}
-                  dataType={dlt645RtuConfig.dataType}
-                  scanRate={dlt645RtuConfig.scanRate}
-                  onAddressChange={(address) => setDlt645RtuConfig({ ...dlt645RtuConfig, address })}
-                  onDataTypeChange={(dataType) => setDlt645RtuConfig({ ...dlt645RtuConfig, dataType })}
-                  onScanRateChange={(scanRate) => setDlt645RtuConfig({ ...dlt645RtuConfig, scanRate })}
-                />
-              )}
-              
-              {selectedNode.protocolType === 'DLT645_TCP' && (
-                <Dlt645TcpInputPointForm
-                  address={dlt645TcpConfig.address}
-                  dataType={dlt645TcpConfig.dataType}
-                  scanRate={dlt645TcpConfig.scanRate}
-                  onAddressChange={(address) => setDlt645TcpConfig({ ...dlt645TcpConfig, address })}
-                  onDataTypeChange={(dataType) => setDlt645TcpConfig({ ...dlt645TcpConfig, dataType })}
-                  onScanRateChange={(scanRate) => setDlt645TcpConfig({ ...dlt645TcpConfig, scanRate })}
-                />
-              )}
-              
+              {/* IEC104: show input and control tabs */}
               {selectedNode.protocolType === 'IEC104_CLIENT' && (
-                <Iec104InputPointForm
-                  points={iec104Points}
-                  onPointsChange={setIec104Points}
-                />
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'input' | 'control')}>
+                  <TabsList>
+                    <TabsTrigger value="input">输入点位</TabsTrigger>
+                    <TabsTrigger value="control">控制点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="input">
+                    <Iec104InputPointForm
+                      points={iec104Points}
+                      onPointsChange={setIec104Points}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="control">
+                    <Iec104ControlPointForm
+                      points={iec104ControlPoints}
+                      onPointsChange={setIec104ControlPoints}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
               
-              {selectedNode.protocolType === 'IEC61850_CLIENT' && (
-                <Iec61850InputPointForm
-                  address={iec61850Config.address}
-                  dataType={iec61850Config.dataType}
-                  scanRate={iec61850Config.scanRate}
-                  onAddressChange={(address) => setIec61850Config({ ...iec61850Config, address })}
-                  onDataTypeChange={(dataType) => setIec61850Config({ ...iec61850Config, dataType })}
-                  onScanRateChange={(scanRate) => setIec61850Config({ ...iec61850Config, scanRate })}
-                />
+              {/* Other protocols: only show input form */}
+              {(selectedNode.protocolType !== 'MODBUS_TCP' && 
+                selectedNode.protocolType !== 'MODBUS_RTU' &&
+                selectedNode.protocolType !== 'IEC104_CLIENT') && (
+                <>
+                  {selectedNode.protocolType === 'DLT645_RTU' && (
+                    <Dlt645RtuInputPointForm
+                      address={dlt645RtuConfig.address}
+                      dataType={dlt645RtuConfig.dataType}
+                      scanRate={dlt645RtuConfig.scanRate}
+                      onAddressChange={(address) => setDlt645RtuConfig({ ...dlt645RtuConfig, address })}
+                      onDataTypeChange={(dataType) => setDlt645RtuConfig({ ...dlt645RtuConfig, dataType })}
+                      onScanRateChange={(scanRate) => setDlt645RtuConfig({ ...dlt645RtuConfig, scanRate })}
+                    />
+                  )}
+                  {selectedNode.protocolType === 'DLT645_TCP' && (
+                    <Dlt645TcpInputPointForm
+                      address={dlt645TcpConfig.address}
+                      dataType={dlt645TcpConfig.dataType}
+                      scanRate={dlt645TcpConfig.scanRate}
+                      onAddressChange={(address) => setDlt645TcpConfig({ ...dlt645TcpConfig, address })}
+                      onDataTypeChange={(dataType) => setDlt645TcpConfig({ ...dlt645TcpConfig, dataType })}
+                      onScanRateChange={(scanRate) => setDlt645TcpConfig({ ...dlt645TcpConfig, scanRate })}
+                    />
+                  )}
+                  {selectedNode.protocolType === 'IEC61850_CLIENT' && (
+                    <Iec61850InputPointForm
+                      address={iec61850Config.address}
+                      dataType={iec61850Config.dataType}
+                      scanRate={iec61850Config.scanRate}
+                      onAddressChange={(address) => setIec61850Config({ ...iec61850Config, address })}
+                      onDataTypeChange={(dataType) => setIec61850Config({ ...iec61850Config, dataType })}
+                      onScanRateChange={(scanRate) => setIec61850Config({ ...iec61850Config, scanRate })}
+                    />
+                  )}
+                </>
               )}
             </>
           )}

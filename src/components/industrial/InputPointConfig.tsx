@@ -55,12 +55,9 @@ interface ModbusRegister {
 
 interface Iec104InputPoint {
   id: string;
-  commonAddress: number;
-  causeOfTransmission: number;
-  informationObjectAddress: number;
-  timestamp?: number;
-  typeId: string;
+  address: string;
   dataType: string;
+  scanRate: number;
   description?: string;
 }
 
@@ -175,22 +172,16 @@ const InputPointConfig = () => {
   const [iec104Points, setIec104Points] = useState<Iec104InputPoint[]>([
     {
       id: '1',
-      commonAddress: 1,
-      causeOfTransmission: 20,
-      informationObjectAddress: 1001,
-      timestamp: 0,
-      typeId: 'M_SP_NA_1',
-      dataType: 'BOOLEAN',
-      description: '单点遥测信息'
+      address: '1001',
+      dataType: 'M_SP_NA_1',
+      scanRate: 500,
+      description: '单点信息'
     },
     {
       id: '2',
-      commonAddress: 1,
-      causeOfTransmission: 20,
-      informationObjectAddress: 2001,
-      timestamp: 0,
-      typeId: 'M_ME_NC_1',
-      dataType: 'FLOAT32',
+      address: '2001',
+      dataType: 'M_ME_NC_1',
+      scanRate: 1000,
       description: '测量值-短浮点数'
     }
   ]);

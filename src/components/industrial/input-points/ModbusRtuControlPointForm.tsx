@@ -193,6 +193,17 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
     return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
   };
 
+  const getRangeOrMapping = (point: ModbusControlPoint): string => {
+    if (point.type === 'ascii' || point.type === 'ascii8') {
+      return point.asciiInvalid ? `无效值: ${point.asciiInvalid}` : '-';
+    } else {
+      if (point.min !== undefined && point.max !== undefined) {
+        return `${point.min} - ${point.max}`;
+      }
+      return '-';
+    }
+  };
+
   const protocolOptions = [
     'MODBUS TCP 客户端',
     'MODBUS RTU 客户端', 
@@ -412,9 +423,9 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                       title="寄存器的提示信息"
                       value={editingPoint ? editingPoint.hint : newPoint.hint}
                       onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, hint: e.target.value })
-                      : setNewPoint({ ...newPoint, hint: e.target.value })
-                    }
+                        ? setEditingPoint({ ...editingPoint, hint: e.target.value })
+                        : setNewPoint({ ...newPoint, hint: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -465,11 +476,7 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
-                  <TableHead>变量名称</TableHead>
-                  <TableHead>实际值范围</TableHead>
-                  <TableHead>线性变换</TableHead>
-                  <TableHead>逻辑类型</TableHead>
-                  <TableHead>绑定输入点位</TableHead>
+                  <TableHead>范围/映射</TableHead>
                   <TableHead>提示</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -488,51 +495,37 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                     <TableCell>
                       {point.reverseByteOrder ? '反转' : '正常'}
                     </TableCell>
-                    <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">
-                      {point.min !== undefined && point.max !== undefined ? (
-                        <div>实际值: {point.min} - {point.max}</div>
-                      ) : (
-                        <div>未设置范围</div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {getLinearFormula(point.a || 1, point.b || 0)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {getLogicTypeLabel(point.logicType)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {point.logicType === 'BIND_INPUT' ? 
-                        `${point.boundInputProtocol || 'MODBUS RTU 客户端'} - ${point.boundInputPoint || 'voltage'}` : 
-                        '-'}
+                      {getRangeOrMapping(point)}
                     </TableCell>
                     <TableCell className="text-xs">{point.hint || '-'}</TableCell>
-                    <TableCell className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startEditingPoint(point)}
-                        title="编辑点位"
-                      >
-                        <Pencil className="h-4 w-4 text-blue-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openConfigDialog(point)}
-                        title="配置逻辑"
-                      >
-                        <Settings2 className="h-4 w-4 text-purple-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deletePoint(point.id)}
-                        title="删除点位"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingPoint(point)}
+                          title="编辑点位"
+                        >
+                          <Pencil className="h-4 w-4 text-blue-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openConfigDialog(point)}
+                          title="配置逻辑"
+                        >
+                          <Settings2 className="h-4 w-4 text-purple-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deletePoint(point.id)}
+                          title="删除点位"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

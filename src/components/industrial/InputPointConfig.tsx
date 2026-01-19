@@ -206,9 +206,105 @@ const InputPointConfig = () => {
     }
   ]);
 
-  // MODBUS control points state
-  const [modbusTcpControlPoints, setModbusTcpControlPoints] = useState<ModbusControlPoint[]>([]);
-  const [modbusRtuControlPoints, setModbusRtuControlPoints] = useState<ModbusControlPoint[]>([]);
+  // MODBUS TCP control points state with example data
+  const [modbusTcpControlPoints, setModbusTcpControlPoints] = useState<ModbusControlPoint[]>([
+    {
+      id: 'tcp-control-1',
+      slaveId: 1,
+      address: 0,
+      type: 'uint16',
+      name: 'motor_start',
+      reverseByteOrder: false,
+      comment: '电机启动信号',
+      min: 0,
+      max: 1,
+      a: 1,
+      b: 0,
+      hint: '0停止，1启动'
+    },
+    {
+      id: 'tcp-control-2',
+      slaveId: 1,
+      address: 1,
+      type: 'uint16',
+      name: 'motor_speed',
+      reverseByteOrder: false,
+      comment: '电机速度设定',
+      min: 0,
+      max: 3000,
+      a: 1,
+      b: 0,
+      hint: '速度范围0-3000RPM'
+    },
+    {
+      id: 'tcp-control-3',
+      slaveId: 1,
+      address: 100,
+      type: 'uint16',
+      name: 'alarm_reset',
+      reverseByteOrder: false,
+      comment: '报警复位',
+      min: 0,
+      max: 1,
+      a: 1,
+      b: 0,
+      hint: '0无效，1有效复位'
+    },
+    {
+      id: 'tcp-control-4',
+      slaveId: 1,
+      address: 200,
+      type: 'ascii',
+      name: 'command_string',
+      reverseByteOrder: false,
+      comment: '命令字符串',
+      asciiInvalid: 'INVALID',
+      hint: 'ASCII命令字符串'
+    }
+  ]);
+
+  // MODBUS RTU control points state with example data
+  const [modbusRtuControlPoints, setModbusRtuControlPoints] = useState<ModbusControlPoint[]>([
+    {
+      id: 'rtu-control-1',
+      slaveId: 1,
+      address: 0,
+      type: 'uint16',
+      name: 'valve_open',
+      reverseByteOrder: false,
+      comment: '阀门开启',
+      min: 0,
+      max: 1,
+      a: 1,
+      b: 0,
+      hint: '0关闭，1开启'
+    },
+    {
+      id: 'rtu-control-2',
+      slaveId: 1,
+      address: 1,
+      type: 'int16',
+      name: 'temperature_set',
+      reverseByteOrder: false,
+      comment: '温度设定值',
+      min: -20,
+      max: 50,
+      a: 1,
+      b: 0,
+      hint: '温度范围-20到50度'
+    },
+    {
+      id: 'rtu-control-3',
+      slaveId: 1,
+      address: 10,
+      type: 'ascii',
+      name: 'device_status',
+      reverseByteOrder: false,
+      comment: '设备状态字符串',
+      asciiInvalid: 'OFF',
+      hint: '设备状态：ON/OFF'
+    }
+  ]);
   
   // IEC104 input config state
   const [iec104Points, setIec104Points] = useState<Iec104InputPoint[]>([
@@ -234,8 +330,39 @@ const InputPointConfig = () => {
     }
   ]);
 
-  // IEC104 control points state
-  const [iec104ControlPoints, setIec104ControlPoints] = useState<Iec104ControlPoint[]>([]);
+  // IEC104 control points state with example data
+  const [iec104ControlPoints, setIec104ControlPoints] = useState<Iec104ControlPoint[]>([
+    {
+      id: 'iec104-control-1',
+      address: '5001',
+      dataType: '单点遥信',
+      min: 0,
+      max: 1,
+      multiplier: 1,
+      offset: 0,
+      description: '遥控开关1'
+    },
+    {
+      id: 'iec104-control-2',
+      address: '6001',
+      dataType: '测量值，标度化值',
+      min: 0,
+      max: 100,
+      multiplier: 1,
+      offset: 0,
+      description: '设定值1'
+    },
+    {
+      id: 'iec104-control-3',
+      address: '6002',
+      dataType: '累计量',
+      min: undefined,
+      max: undefined,
+      multiplier: 1,
+      offset: 0,
+      description: '累计电量'
+    }
+  ]);
   
   // Other protocol config states
   const [dlt645RtuConfig, setDlt645RtuConfig] = useState({ address: '000000000001', dataType: 'ENERGY', scanRate: 60000 });

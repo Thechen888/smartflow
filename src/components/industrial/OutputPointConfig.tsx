@@ -45,21 +45,17 @@ interface ModbusRegister {
   hint?: string;
 }
 
-// IEC104 output point interface
+// IEC104 output point interface - simplified to match input structure
 interface Iec104OutputPoint {
   id: string;
-  address: number;
-  type: 'single' | 'double' | 'step' | 'setpoint';
+  address: string;
   name: string;
-  dataType: 'BOOLEAN' | 'INT32' | 'FLOAT32';
-  controlType: 'DIRECT' | 'SELECT_EXECUTE';
-  operationLevel: 'OPERATOR' | 'ENGINEER' | 'ADMIN';
+  dataType: string;
   min?: number;
   max?: number;
-  defaultValue?: string;
+  multiplier?: number;
+  offset?: number;
   description?: string;
-  selectTimeout?: number;
-  executeTimeout?: number;
 }
 
 // IEC61850 output point interface
@@ -167,35 +163,29 @@ const OutputPointConfig = () => {
     }
   ]);
 
-  // IEC104 Server output points
+  // IEC104 Server output points - simplified to match input structure
   const [iec104Points, setIec104Points] = useState<Iec104OutputPoint[]>([
     {
       id: '1',
-      address: 1001,
-      type: 'single',
+      address: '5001',
       name: '断路器控制',
-      dataType: 'BOOLEAN',
-      controlType: 'SELECT_EXECUTE',
-      operationLevel: 'OPERATOR',
-      defaultValue: 'false',
-      description: '断路器分合闸控制',
-      selectTimeout: 10000,
-      executeTimeout: 15000
+      dataType: '单点遥信',
+      min: 0,
+      max: 1,
+      multiplier: 1,
+      offset: 0,
+      description: '断路器分合闸控制'
     },
     {
       id: '2',
-      address: 2001,
-      type: 'setpoint',
+      address: '6001',
       name: '电压设定',
-      dataType: 'FLOAT32',
-      controlType: 'SELECT_EXECUTE',
-      operationLevel: 'ENGINEER',
+      dataType: '测量值，规一化值',
       min: 0,
       max: 400,
-      defaultValue: '220.0',
-      description: '系统电压设定值',
-      selectTimeout: 10000,
-      executeTimeout: 15000
+      multiplier: 1,
+      offset: 0,
+      description: '系统电压设定值'
     }
   ]);
 

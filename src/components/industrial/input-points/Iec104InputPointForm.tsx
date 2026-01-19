@@ -6,15 +6,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Download, Upload, Pencil, Search } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, Pencil } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { toast } from "sonner";
 
 interface Iec104InputPoint {
   id: string;
-  address: string;
-  dataType: string;
-  scanRate: number;
-  description?: string;
+  commonAddress: number;           // 公共地址
+  causeOfTransmission: number;    // 传送原因
+  informationObjectAddress: number; // 信息体地址
+  timestamp?: number;             // 时标
+  typeId: string;                 // 类型标识
+  dataType: string;               // 数据类型
+  description?: string;            // 描述
 }
 
 interface Iec104InputPointFormProps {
@@ -26,27 +31,35 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
   points,
   onPointsChange
 }) => {
+  const [activeTab, setActiveTab] = useState('M_SP_NA_1');
   const [isAdding, setIsAdding] = useState(false);
   const [editingPoint, setEditingPoint] = useState<Iec104InputPoint | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
   const [newPoint, setNewPoint] = useState<Omit<Iec104InputPoint, 'id'>>({
-    address: '1001',
-    dataType: 'M_SP_NA_1',
-    scanRate: 500,
+    commonAddress: 1,
+    causeOfTransmission: 20,
+    informationObjectAddress: 1001,
+    timestamp: 0,
+    typeId: 'M_SP_NA_1',
+    dataType: 'BOOLEAN',
     description: ''
   });
 
   const addPoint = () => {
-    if (newPoint.address) {
+    if (newPoint.typeId) {
       const point: Iec104InputPoint = {
         ...newPoint,
         id: Date.now().toString()
       };
       onPointsChange([...points, point]);
       setNewPoint({ 
-        address: '1001', 
-        dataType: 'M_SP_NA_1', 
-        scanRate: 500,
+        commonAddress: 1,
+        causeOfTransmission: 20,
+        informationObjectAddress: 1001,
+        timestamp: 0,
+        typeId: activeTab,
+        dataType: activeTab === 'M_SP_NA_1' || activeTab === 'M_DP_NA_1' ? 'BOOLEAN' : 'INT16',
         description: ''
       });
       setIsAdding(false);
@@ -82,6 +95,7 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
     link.download = 'iec104_input_config.json';
     link.click();
     URL.revokeObjectURL(url);
+    toast.success('IEC104输入配置已导出');
   };
 
   const importConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,39 +108,62 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
         const config = JSON.parse(e.target?.result as string);
         if (config.points) {
           onPointsChange(config.points);
+          toast.success('IEC104输入配置已导入');
         } else {
-          console.error('配置文件格式不正确');
+          toast.error('配置文件格式不正确');
         }
       } catch (error) {
-        console.error('导入配置文件失败，请检查文件格式');
+        toast.error('导入配置文件失败，请检查文件格式');
       }
     };
     reader.readAsText(file);
     event.target.value = '';
   };
 
-  const filteredPoints = points.filter(point => 
-    point.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    point.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPoints = points.filter(point => {
+    const matchesTab = point.typeId === activeTab;
+    const matchesSearch = searchTerm === '' || 
+      point.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      point.informationObjectAddress.toString().includes(searchTerm);
+    return matchesTab && matchesSearch;
+  });
 
-  const getDataTypeLabel = (type: string): string => {
-    const labels: Record<string, string> = {
-      'M_SP_NA_1': '单点信息 (M_SP_NA_1)',
-      'M_DP_NA_1': '双点信息 (M_DP_NA_1)',
-      'M_ST_NA_1': '步位置信息 (M_ST_NA_1)',
-      'M_ME_NA_1': '测量值-归一化值 (M_ME_NA_1)',
-      'M_ME_NB_1': '测量值-标度化值 (M_ME_NB_1)',
-      'M_ME_NC_1': '测量值-短浮点数 (M_ME_NC_1)',
-      'M_IT_NA_1': '累计量 (M_IT_NA_1)'
-    };
-    return labels[type] || type;
+  const getDataTypeOptions = (typeId: string) => {
+    if (typeId === 'M_SP_NA_1' || typeId === 'M_DP_NA_1') {
+      return <SelectItem value="BOOLEAN">BOOLEAN</SelectItem>;
+    }
+    if (typeId === 'M_ME_NA_1') {
+      return <><SelectItem value="INT16">INT16</SelectItem><SelectItem value="UINT16">UINT16</SelectItem></>;
+    }
+    if (typeId === 'M_ME_NB_1') {
+      return <><SelectItem value="INT32">INT32</SelectItem><SelectItem value="UINT32">UINT32</SelectItem></>;
+    }
+    if (typeId === 'M_ME_NC_1') {
+      return <><SelectItem value="FLOAT32">FLOAT32</SelectItem><SelectItem value="FLOAT64">FLOAT64</SelectItem></>;
+    }
+    if (typeId === 'M_ST_NA_1') {
+      return <><SelectItem value="INT16">INT16</SelectItem><SelectItem value="UINT16">UINT16</SelectItem></>;
+    }
+    if (typeId === 'M_IT_NA_1') {
+      return <><SelectItem value="INT32">INT32</SelectItem><SelectItem value="UINT32">UINT32</SelectItem></>;
+    }
+    return null;
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <CardTitle>IEC104 输入点位配置</CardTitle>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="M_SP_NA_1">单点遥测信息</TabsTrigger>
+            <TabsTrigger value="M_DP_NA_1">双点遥测信息</TabsTrigger>
+            <TabsTrigger value="M_ST_NA_1">步位置遥测信息</TabsTrigger>
+            <TabsTrigger value="M_ME_NA_1">测量值-归一化值</TabsTrigger>
+            <TabsTrigger value="M_ME_NB_1">测量值-标度化值</TabsTrigger>
+            <TabsTrigger value="M_ME_NC_1">测量值-短浮点数</TabsTrigger>
+            <TabsTrigger value="M_IT_NA_1">累计量</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
             <label className="cursor-pointer flex items-center">
@@ -144,166 +181,201 @@ const Iec104InputPointForm: React.FC<Iec104InputPointFormProps> = ({
             <Download className="mr-1 h-3 w-3" />
             导出
           </Button>
-          <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
-            <Plus className="mr-1 h-3 w-3" />
-            {isAdding ? '取消' : '添加点位'}
-          </Button>
         </div>
       </div>
 
-      {/* 搜索栏 */}
-      {!isAdding && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="搜索点位..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      )}
-
-      {/* 添加/编辑表单 */}
-      {isAdding && (
-        <Card className="p-4 bg-blue-50">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg">
-              {editingPoint ? '编辑点位' : '添加新点位'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>信息对象地址 *</Label>
-                <Input
-                  value={editingPoint ? editingPoint.address : newPoint.address}
-                  onChange={(e) => editingPoint 
-                    ? setEditingPoint({ ...editingPoint, address: e.target.value })
-                    : setNewPoint({ ...newPoint, address: e.target.value })
-                  }
-                  placeholder="例如: 1001"
-                />
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>{activeTab}</CardTitle>
+            <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
+              <Plus className="mr-1 h-3 w-3" />
+              {isAdding ? '取消' : '添加点位'}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {(isAdding || editingPoint) && (
+            <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">公共地址 *</Label>
+                  <Input
+                    type="number"
+                    title="公共地址"
+                    value={editingPoint ? editingPoint.commonAddress : newPoint.commonAddress}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, commonAddress: parseInt(e.target.value) || 1 })
+                      : setNewPoint({ ...newPoint, commonAddress: parseInt(e.target.value) || 1 })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">传送原因 *</Label>
+                  <Input
+                    type="number"
+                    title="传送原因"
+                    value={editingPoint ? editingPoint.causeOfTransmission : newPoint.causeOfTransmission}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, causeOfTransmission: parseInt(e.target.value) || 20 })
+                      : setNewPoint({ ...newPoint, causeOfTransmission: parseInt(e.target.value) || 20 })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">信息体地址 *</Label>
+                  <Input
+                    type="number"
+                    title="信息体地址"
+                    value={editingPoint ? editingPoint.informationObjectAddress : newPoint.informationObjectAddress}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, informationObjectAddress: parseInt(e.target.value) || 1001 })
+                      : setNewPoint({ ...newPoint, informationObjectAddress: parseInt(e.target.value) || 1001 })
+                    }
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>数据类型 *</Label>
-                <Select
-                  value={editingPoint ? editingPoint.dataType : newPoint.dataType}
-                  onValueChange={(value) => editingPoint 
-                    ? setEditingPoint({ ...editingPoint, dataType: value })
-                    : setNewPoint({ ...newPoint, dataType: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M_SP_NA_1">单点信息 (M_SP_NA_1)</SelectItem>
-                    <SelectItem value="M_DP_NA_1">双点信息 (M_DP_NA_1)</SelectItem>
-                    <SelectItem value="M_ST_NA_1">步位置信息 (M_ST_NA_1)</SelectItem>
-                    <SelectItem value="M_ME_NA_1">测量值-归一化值 (M_ME_NA_1)</SelectItem>
-                    <SelectItem value="M_ME_NB_1">测量值-标度化值 (M_ME_NB_1)</SelectItem>
-                    <SelectItem value="M_ME_NC_1">测量值-短浮点数 (M_ME_NC_1)</SelectItem>
-                    <SelectItem value="M_IT_NA_1">累计量 (M_IT_NA_1)</SelectItem>
-                  </SelectContent>
-                </Select>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">时标</Label>
+                  <Input
+                    type="number"
+                    title="时标"
+                    value={editingPoint ? (editingPoint.timestamp ?? '') : (newPoint.timestamp ?? '')}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, timestamp: e.target.value ? parseInt(e.target.value) : undefined })
+                      : setNewPoint({ ...newPoint, timestamp: e.target.value ? parseInt(e.target.value) : undefined })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">类型标识 *</Label>
+                  <Input
+                    title="类型标识"
+                    value={activeTab}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">数据类型 *</Label>
+                  <Select
+                    value={editingPoint ? editingPoint.dataType : newPoint.dataType}
+                    onValueChange={(value) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, dataType: value })
+                      : setNewPoint({ ...newPoint, dataType: value })
+                    }
+                  >
+                    <SelectTrigger className="w-full" title="数据类型">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getDataTypeOptions(activeTab)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>扫描频率(ms)</Label>
+              
+              <div className="space-y-1">
+                <Label className="text-xs">描述</Label>
                 <Input
-                  type="number"
-                  value={editingPoint ? editingPoint.scanRate : newPoint.scanRate}
-                  onChange={(e) => editingPoint 
-                    ? setEditingPoint({ ...editingPoint, scanRate: parseInt(e.target.value) || 500 })
-                    : setNewPoint({ ...newPoint, scanRate: parseInt(e.target.value) || 500 })
-                  }
-                  placeholder="500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>描述</Label>
-                <Input
+                  title="点位描述"
                   value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
                   onChange={(e) => editingPoint 
                     ? setEditingPoint({ ...editingPoint, description: e.target.value })
                     : setNewPoint({ ...newPoint, description: e.target.value })
                   }
-                  placeholder="点位描述"
                 />
               </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => {
+              
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => {
                   setIsAdding(false);
                   setEditingPoint(null);
-                }}
-              >
-                取消
-              </Button>
-              <Button 
-                onClick={editingPoint ? updatePoint : addPoint}
-                disabled={!editingPoint && !newPoint.address}
-              >
-                {editingPoint ? '更新' : '添加'}
-              </Button>
+                }}>
+                  取消
+                </Button>
+                <Button size="sm" onClick={editingPoint ? updatePoint : addPoint}>
+                  {editingPoint ? '更新' : '添加'}
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
 
-      {/* 点位列表 */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>信息对象地址</TableHead>
-                <TableHead>数据类型</TableHead>
-                <TableHead>扫描频率(ms)</TableHead>
-                <TableHead>描述</TableHead>
-                <TableHead className="w-32">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPoints.map((point) => (
-                <TableRow key={point.id}>
-                  <TableCell className="font-medium">{point.address}</TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                      {getDataTypeLabel(point.dataType)}
-                    </span>
-                  </TableCell>
-                  <TableCell>{point.scanRate}</TableCell>
-                  <TableCell className="text-sm">{point.description || '-'}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startEditingPoint(point)}
-                        title="编辑"
-                      >
-                        <Pencil className="h-4 w-4 text-blue-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deletePoint(point.id)}
-                        title="删除"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
+          {/* 搜索栏 */}
+          {!isAdding && !editingPoint && (
+            <div className="relative mb-4">
+              <Input
+                placeholder="搜索点位..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          )}
+
+          <div className="border rounded-lg overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>公共地址</TableHead>
+                  <TableHead>传送原因</TableHead>
+                  <TableHead>信息体地址</TableHead>
+                  <TableHead>时标</TableHead>
+                  <TableHead>类型标识</TableHead>
+                  <TableHead>数据类型</TableHead>
+                  <TableHead>描述</TableHead>
+                  <TableHead>操作</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredPoints.map((point) => (
+                  <TableRow key={point.id}>
+                    <TableCell>{point.commonAddress}</TableCell>
+                    <TableCell>{point.causeOfTransmission}</TableCell>
+                    <TableCell>{point.informationObjectAddress}</TableCell>
+                    <TableCell>{point.timestamp || '-'}</TableCell>
+                    <TableCell>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                        {point.typeId}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                        {point.dataType}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm">{point.description || '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingPoint(point)}
+                          title="编辑"
+                        >
+                          <Pencil className="h-4 w-4 text-blue-500" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deletePoint(point.id)}
+                          title="删除"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
           {filteredPoints.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              暂无IEC104输入点位
+            <div className="text-center py-4 text-gray-500">
+              暂无{activeTab}点位
             </div>
           )}
         </CardContent>

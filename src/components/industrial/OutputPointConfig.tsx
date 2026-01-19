@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 // Updated ProtocolType definition to include MODBUS Server
 type ProtocolType = 
@@ -45,6 +46,27 @@ interface ModbusRegister {
   hint?: string;
 }
 
+// MODBUS Control Point interface (for control point tab)
+interface ModbusControlPoint {
+  id: string;
+  slaveId: number;
+  address: number;
+  type: 'uint16' | 'int16' | 'uint32' | 'int32' | 'ascii' | 'ascii8';
+  name: string;
+  reverseByteOrder: boolean;
+  comment: string;
+  min?: number;
+  max?: number;
+  asciiInvalid?: string;
+  a?: number;
+  b?: number;
+  hint?: string;
+  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputProtocol?: string;
+  boundInputPoint?: string;
+  variableName?: string;
+}
+
 // IEC104 output point interface - simplified to match input structure
 interface Iec104OutputPoint {
   id: string;
@@ -56,6 +78,23 @@ interface Iec104OutputPoint {
   multiplier?: number;
   offset?: number;
   description?: string;
+}
+
+// IEC104 Control Point interface
+interface Iec104ControlPoint {
+  id: string;
+  address: string;
+  name: string;
+  dataType: string;
+  min?: number;
+  max?: number;
+  multiplier?: number;
+  offset?: number;
+  description?: string;
+  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputProtocol?: string;
+  boundInputPoint?: string;
+  variableName?: string;
 }
 
 // IEC61850 output point interface
@@ -73,6 +112,10 @@ interface Iec61850OutputPoint {
   description?: string;
   sboTimeout?: number;
   enhancedDirect?: boolean;
+  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputProtocol?: string;
+  boundInputPoint?: string;
+  variableName?: string;
 }
 
 // Protocol display name mapping
@@ -106,14 +149,19 @@ import ModbusTcpOutputPointForm from './output-points/ModbusTcpOutputPointForm';
 import ModbusRtuOutputPointForm from './output-points/ModbusRtuOutputPointForm';
 import Iec104OutputPointForm from './output-points/Iec104OutputPointForm';
 import Iec61850OutputPointForm from './output-points/Iec61850OutputPointForm';
+// Import control point forms
+import ModbusTcpControlPointForm from './output-points/ModbusTcpControlPointForm';
+import ModbusRtuControlPointForm from './output-points/ModbusRtuControlPointForm';
+import Iec104ControlPointForm from './output-points/Iec104ControlPointForm';
 
 const OutputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
   const [filterProtocol, setFilterProtocol] = useState<string>('ALL');
   const [filterName, setFilterName] = useState<string>('');
-  
-  // MODBUS TCP Server output points - using only registers (no scan entries for server)
+  const [activeTab, setActiveTab] = useState<'output' | 'control'>('output');
+
+  // MODBUS TCP Server output points
   const [modbusTcpRegisters, setModbusTcpRegisters] = useState<ModbusRegister[]>([
     { 
       id: '1', 
@@ -145,6 +193,38 @@ const OutputPointConfig = () => {
     }
   ]);
 
+  // MODBUS TCP Server control points
+  const [modbusTcpControlPoints, setModbusTcpControlPoints] = useState<ModbusControlPoint[]>([
+    {
+      id: 'tcp-control-1',
+      slaveId: 1,
+      address: 0,
+      type: 'uint16',
+      name: 'motor_start',
+      reverseByteOrder: false,
+      comment: '电机启动信号',
+      min: 0,
+      max: 1,
+      a: 1,
+      b: 0,
+      hint: '0停止，1启动'
+    },
+    {
+      id: 'tcp-control-2',
+      slaveId: 1,
+      address: 1,
+      type: 'uint16',
+      name: 'motor_speed',
+      reverseByteOrder: false,
+      comment: '电机速度设定',
+      min: 0,
+      max: 3000,
+      a: 1,
+      b: 0,
+      hint: '速度范围0-3000RPM'
+    }
+  ]);
+
   // MODBUS RTU Server output points
   const [modbusRtuRegisters, setModbusRtuRegisters] = useState<ModbusRegister[]>([
     { 
@@ -163,7 +243,39 @@ const OutputPointConfig = () => {
     }
   ]);
 
-  // IEC104 Server output points - simplified to match input structure
+  // MODBUS RTU Server control points
+  const [modbusRtuControlPoints, setModbusRtuControlPoints] = useState<ModbusControlPoint[]>([
+    {
+      id: 'rtu-control-1',
+      slaveId: 1,
+      address: 0,
+      type: 'uint16',
+      name: 'valve_open',
+      reverseByteOrder: false,
+      comment: '阀门开启',
+      min: 0,
+      max: 1,
+      a: 1,
+      b: 0,
+      hint: '0关闭，1开启'
+    },
+    {
+      id: 'rtu-control-2',
+      slaveId: 1,
+      address: 1,
+      type: 'int16',
+      name: 'temperature_set',
+      reverseByteOrder: false,
+      comment: '温度设定值',
+      min: -20,
+      max: 50,
+      a: 1,
+      b: 0,
+      hint: '温度范围-20到50度'
+    }
+  ]);
+
+  // IEC104 Server output points
   const [iec104Points, setIec104Points] = useState<Iec104OutputPoint[]>([
     {
       id: '1',
@@ -180,12 +292,38 @@ const OutputPointConfig = () => {
       id: '2',
       address: '6001',
       name: '电压设定',
-      dataType: '测量值，规一化值',
+      dataType: '测量值，标度化值',
       min: 0,
       max: 400,
       multiplier: 1,
       offset: 0,
       description: '系统电压设定值'
+    }
+  ]);
+
+  // IEC104 Server control points
+  const [iec104ControlPoints, setIec104ControlPoints] = useState<Iec104ControlPoint[]>([
+    {
+      id: 'iec104-control-1',
+      address: '5001',
+      name: '遥控开关1',
+      dataType: '单点遥信',
+      min: 0,
+      max: 1,
+      multiplier: 1,
+      offset: 0,
+      description: '遥控开关1'
+    },
+    {
+      id: 'iec104-control-2',
+      address: '6001',
+      name: '设定值1',
+      dataType: '测量值，标度化值',
+      min: 0,
+      max: 100,
+      multiplier: 1,
+      offset: 0,
+      description: '设定值1'
     }
   ]);
 
@@ -201,7 +339,8 @@ const OutputPointConfig = () => {
       operationLevel: 'OPERATOR',
       defaultValue: 'false',
       description: '开关分合闸控制',
-      sboTimeout: 10000
+      sboTimeout: 10000,
+      variableName: 'switch_pos'
     },
     {
       id: '2',
@@ -215,13 +354,13 @@ const OutputPointConfig = () => {
       max: 1000,
       defaultValue: '500.0',
       description: '电流设定值',
-      sboTimeout: 10000
+      sboTimeout: 10000,
+      variableName: 'current_set'
     }
   ]);
 
   // Get nodes from parent component or global state
   useEffect(() => {
-    // In real application, this should come from global state or API
     const defaultNodes: CommunicationNode[] = [
       {
         id: 'modbus-tcp-server-1',
@@ -327,13 +466,13 @@ const OutputPointConfig = () => {
           </div>
           {filteredNodes.length === 0 && (
             <div className="text-center py-4 text-gray-500">
-              未找到匹配的服务端设备
+              未找到匹配的设备
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Point table takes bottom space */}
+      {/* Point configuration with output/control tabs */}
       <Card>
         <CardHeader>
           <CardTitle>
@@ -346,28 +485,82 @@ const OutputPointConfig = () => {
         <CardContent>
           {selectedNode && (
             <>
+              {/* MODBUS TCP Server: show output and control tabs */}
               {selectedNode.protocolType === 'MODBUS_TCP_SERVER' && (
-                <ModbusTcpOutputPointForm
-                  registers={modbusTcpRegisters}
-                  onRegistersChange={setModbusTcpRegisters}
-                />
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control')}>
+                  <TabsList>
+                    <TabsTrigger value="output">输出点位</TabsTrigger>
+                    <TabsTrigger value="control">控制点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="output">
+                    <ModbusTcpOutputPointForm
+                      registers={modbusTcpRegisters}
+                      onRegistersChange={setModbusTcpRegisters}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="control">
+                    <ModbusTcpControlPointForm
+                      points={modbusTcpControlPoints}
+                      onPointsChange={setModbusTcpControlPoints}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
               
+              {/* MODBUS RTU Server: show output and control tabs */}
               {selectedNode.protocolType === 'MODBUS_RTU_SERVER' && (
-                <ModbusRtuOutputPointForm
-                  registers={modbusRtuRegisters}
-                  onRegistersChange={setModbusRtuRegisters}
-                />
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control')}>
+                  <TabsList>
+                    <TabsTrigger value="output">输出点位</TabsTrigger>
+                    <TabsTrigger value="control">控制点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="output">
+                    <ModbusRtuOutputPointForm
+                      registers={modbusRtuRegisters}
+                      onRegistersChange={setModbusRtuRegisters}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="control">
+                    <ModbusRtuControlPointForm
+                      points={modbusRtuControlPoints}
+                      onPointsChange={setModbusRtuControlPoints}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
               
+              {/* IEC104 Server: show output and control tabs */}
               {selectedNode.protocolType === 'IEC104_SERVER' && (
-                <Iec104OutputPointForm
-                  points={iec104Points}
-                  onPointsChange={setIec104Points}
-                />
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control')}>
+                  <TabsList>
+                    <TabsTrigger value="output">输出点位</TabsTrigger>
+                    <TabsTrigger value="control">控制点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="output">
+                    <Iec104OutputPointForm
+                      points={iec104Points}
+                      onPointsChange={setIec104Points}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="control">
+                    <Iec104ControlPointForm
+                      points={iec104ControlPoints}
+                      onPointsChange={setIec104ControlPoints}
+                    />
+                  </TabsContent>
+                </Tabs>
               )}
               
-              {selectedNode.protocolType === 'IEC61850_SERVER' && (
+              {/* Other protocols: only show output form */}
+              {(selectedNode.protocolType !== 'MODBUS_TCP_SERVER' && 
+                selectedNode.protocolType !== 'MODBUS_RTU_SERVER' &&
+                selectedNode.protocolType !== 'IEC104_SERVER') && (
                 <Iec61850OutputPointForm
                   points={iec61850Points}
                   onPointsChange={setIec61850Points}

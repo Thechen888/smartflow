@@ -24,7 +24,6 @@ interface Iec104ControlPoint {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string;
 }
 
 interface Iec104ControlPointFormProps {
@@ -47,7 +46,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
     max: undefined,
     multiplier: 1,
     offset: 0,
-    variableName: '',
     logicType: 'BIND_INPUT',
     boundInputProtocol: 'IEC104 服务端',
     boundInputPoint: '遥控开关1'
@@ -77,7 +75,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
         max: undefined,
         multiplier: 1,
         offset: 0,
-        variableName: '',
         logicType: 'BIND_INPUT',
         boundInputProtocol: 'IEC104 服务端',
         boundInputPoint: '遥控开关1'
@@ -331,18 +328,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
             </div>
 
             <div className="mt-4">
-              <Label>变量名称</Label>
-              <Input
-                value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
-                onChange={(e) => editingPoint 
-                  ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
-                  : setNewPoint({ ...newPoint, variableName: e.target.value })
-                }
-                placeholder="变量名称"
-              />
-            </div>
-
-            <div className="mt-4">
               <Label>描述</Label>
               <Input
                 value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
@@ -387,7 +372,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                 <TableHead>最大值</TableHead>
                 <TableHead>倍率</TableHead>
                 <TableHead>偏移量</TableHead>
-                <TableHead>变量名称</TableHead>
                 <TableHead>描述</TableHead>
                 <TableHead>逻辑类型</TableHead>
                 <TableHead>绑定输出点位</TableHead>
@@ -410,7 +394,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                   <TableCell>{point.max ?? '-'}</TableCell>
                   <TableCell>{point.multiplier ?? '-'}</TableCell>
                   <TableCell>{point.offset ?? '-'}</TableCell>
-                  <TableCell className="text-sm">{point.variableName || '-'}</TableCell>
                   <TableCell className="text-sm">{point.description || '-'}</TableCell>
                   <TableCell className="text-sm">
                     {getLogicTypeLabel(point.logicType)}

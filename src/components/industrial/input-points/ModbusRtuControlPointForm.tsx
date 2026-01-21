@@ -29,7 +29,6 @@ interface ModbusControlPoint {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string;
 }
 
 interface ModbusRtuControlPointFormProps {
@@ -56,7 +55,6 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
     a: 1,
     b: 0,
     hint: '',
-    variableName: '',
     logicType: 'BIND_INPUT',
     boundInputProtocol: 'MODBUS RTU 服务端',
     boundInputPoint: 'valve_open'
@@ -90,7 +88,6 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
         a: 1,
         b: 0,
         hint: '',
-        variableName: '',
         logicType: 'BIND_INPUT',
         boundInputProtocol: 'MODBUS RTU 服务端',
         boundInputPoint: 'valve_open'
@@ -307,18 +304,6 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                   <Label className="text-sm">反转字节序</Label>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">变量名称</Label>
-                  <Input
-                    placeholder="变量名称"
-                    title="控制变量名称"
-                    value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
-                      : setNewPoint({ ...newPoint, variableName: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
                   <Label className="text-xs">注释</Label>
                   <Input
                     placeholder="寄存器注释"
@@ -457,7 +442,6 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
-                  <TableHead>变量名称</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
                   <TableHead>提示</TableHead>
@@ -479,7 +463,6 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                     <TableCell>
                       {point.reverseByteOrder ? '反转' : '正常'}
                     </TableCell>
-                    <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">
                       {point.min !== undefined && point.max !== undefined ? (
                         <div>实际值: {point.min} - {point.max}</div>

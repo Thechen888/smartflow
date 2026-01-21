@@ -461,6 +461,7 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
                   <TableHead>提示</TableHead>
+                  <TableHead>绑定输出点位</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -490,6 +491,10 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                       {getLinearFormula(point.a || 1, point.b || 0)}
                     </TableCell>
                     <TableCell className="text-xs">{point.hint || '-'}</TableCell>
+                    <TableCell className="text-xs">
+                      {point.logicType === 'SCRIPT_ONLY' ? '纯脚本' : 
+                       `${point.boundInputProtocol || 'MODBUS RTU 服务端'} - ${point.boundInputPoint || 'valve_open'}`}
+                    </TableCell>
                     <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"

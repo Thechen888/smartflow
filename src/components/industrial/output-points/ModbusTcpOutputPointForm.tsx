@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
@@ -18,7 +17,7 @@ interface ModbusRegister {
   address: number;
   type: 'uint16' | 'int16' | 'uint32' | 'int32' | 'ascii' | 'ascii8';
   name: string;
-  reverseByteOrder: boolean;
+  byteOrder: 'abcd' | 'cdab' | 'dcba' | 'badc';
   comment: string;
   min?: number;
   max?: number;
@@ -48,7 +47,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     address: 0,
     type: 'uint16',
     name: '',
-    reverseByteOrder: false,
+    byteOrder: 'abcd',
     comment: '',
     min: undefined,
     max: undefined,
@@ -79,7 +78,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
         address: 0, 
         type: 'uint16', 
         name: '', 
-        reverseByteOrder: false, 
+        byteOrder: 'abcd',
         comment: '',
         min: undefined,
         max: undefined,
@@ -108,12 +107,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
   const startEditingRegister = (register: ModbusRegister) => {
     setEditingRegister({ ...register });
     setIsAddingRegister(false);
-  };
-
-  const toggleByteOrder = (id: string) => {
-    onRegistersChange(registers.map(reg => 
-      reg.id === id ? { ...reg, reverseByteOrder: !reg.reverseByteOrder } : reg
-    ));
   };
 
   // 配置对话框处理
@@ -223,6 +216,16 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     { value: 'current', label: 'current' }
   ];
 
+  const getByteOrderLabel = (byteOrder: string) => {
+    const labels: Record<string, string> = {
+      'abcd': 'abcd (标准)',
+      'cdab': 'cdab (交换高低字节)',
+      'dcba': 'dcba (完全反转)',
+      'badc': 'badc (交换字节内位)'
+    };
+    return labels[byteOrder] || byteOrder;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -319,15 +322,25 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                <div className="flex items-center space-x-2" title="是否反转多字节数据的字节顺序">
-                  <Checkbox
-                    checked={editingRegister ? editingRegister.reverseByteOrder : newRegister.reverseByteOrder}
-                    onCheckedChange={(checked) => editingRegister 
-                      ? setEditingRegister({ ...editingRegister, reverseByteOrder: checked as boolean })
-                      : setNewRegister({ ...newRegister, reverseByteOrder: checked as boolean })
+                <div className="space-y-1">
+                  <Label className="text-xs">字节序</Label>
+                  <Select
+                    value={editingRegister ? editingRegister.byteOrder : newRegister.byteOrder}
+                    onValueChange={(value) => editingRegister 
+                      ? setEditingRegister({ ...editingRegister, byteOrder: value as any })
+                      : setNewRegister({ ...newRegister, byteOrder: value as any })
                     }
-                  />
-                  <Label className="text-sm">反转字节序</Label>
+                  >
+                    <SelectTrigger className="w-full" title="字节序排列方式">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="abcd">abcd (标准)</SelectItem>
+                      <SelectItem value="cdab">cdab (交换高低字节)</SelectItem>
+                      <SelectItem value="dcba">dcba (完全反转)</SelectItem>
+                      <SelectItem value="badc">badc (交换字节内位)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">注释</Label>
@@ -489,7 +502,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                     </TableCell>
                     <TableCell className="font-medium">{register.name}</TableCell>
                     <TableCell>
-                      {register.reverseByteOrder ? '反转' : '正常'}
+                      {getByteOrderLabel(register.byteOrder)}
                     </TableCell>
                     <TableCell className="text-xs">
                       {register.min !== undefined && register.max !== undefined ? (

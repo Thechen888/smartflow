@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Download, Upload, Pencil } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from "sonner";
 
 interface ModbusControlPoint {
@@ -17,7 +16,7 @@ interface ModbusControlPoint {
   address: number;
   type: 'uint16' | 'int16' | 'uint32' | 'int32' | 'ascii' | 'ascii8';
   name: string;
-  reverseByteOrder: boolean;
+  byteOrder: 'abcd' | 'cdab' | 'dcba' | 'badc';
   comment: string;
   min?: number;
   max?: number;
@@ -43,7 +42,7 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
     address: 0,
     type: 'uint16',
     name: '',
-    reverseByteOrder: false,
+    byteOrder: 'abcd',
     comment: '',
     min: undefined,
     max: undefined,
@@ -65,7 +64,7 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
         address: 0, 
         type: 'uint16', 
         name: '', 
-        reverseByteOrder: false, 
+        byteOrder: 'abcd',
         comment: '',
         min: undefined,
         max: undefined,
@@ -133,6 +132,16 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
 
   const getLinearFormula = (a: number, b: number) => {
     return `实际值 = ${a} × 寄存器值 + ${b}`;
+  };
+
+  const getByteOrderLabel = (byteOrder: string) => {
+    const labels: Record<string, string> = {
+      'abcd': 'abcd (标准)',
+      'cdab': 'cdab (交换高低字节)',
+      'dcba': 'dcba (完全反转)',
+      'badc': 'badc (交换字节内位)'
+    };
+    return labels[byteOrder] || byteOrder;
   };
 
   return (
@@ -230,15 +239,25 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                 </div>
               </div>              
               <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                <div className="flex items-center space-x-2" title="是否反转多字节数据的字节顺序">
-                  <Checkbox
-                    checked={editingPoint ? editingPoint.reverseByteOrder : newPoint.reverseByteOrder}
-                    onCheckedChange={(checked) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, reverseByteOrder: checked as boolean })
-                      : setNewPoint({ ...newPoint, reverseByteOrder: checked as boolean })
+                <div className="space-y-1">
+                  <Label className="text-xs">字节序</Label>
+                  <Select
+                    value={editingPoint ? editingPoint.byteOrder : newPoint.byteOrder}
+                    onValueChange={(value) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, byteOrder: value as any })
+                      : setNewPoint({ ...newPoint, byteOrder: value as any })
                     }
-                  />
-                  <Label className="text-sm">反转字节序</Label>
+                  >
+                    <SelectTrigger className="w-full" title="字节序排列方式">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="abcd">abcd (标准)</SelectItem>
+                      <SelectItem value="cdab">cdab (交换高低字节)</SelectItem>
+                      <SelectItem value="dcba">dcba (完全反转)</SelectItem>
+                      <SelectItem value="badc">badc (交换字节内位)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">注释</Label>
@@ -396,7 +415,7 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                     </TableCell>
                     <TableCell className="font-medium">{point.name}</TableCell>
                     <TableCell>
-                      {point.reverseByteOrder ? '反转' : '正常'}
+                      {getByteOrderLabel(point.byteOrder)}
                     </TableCell>
                     <TableCell className="text-xs">
                       {point.min !== undefined && point.max !== undefined ? (

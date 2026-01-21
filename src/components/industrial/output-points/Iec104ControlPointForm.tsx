@@ -20,7 +20,6 @@ interface Iec104ControlPoint {
   multiplier?: number;
   offset?: number;
   description?: string;
-  variableName?: string;
 }
 
 interface Iec104ControlPointFormProps {
@@ -42,8 +41,7 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
     min: undefined,
     max: undefined,
     multiplier: 1,
-    offset: 0,
-    variableName: ''
+    offset: 0
   });
 
   const addPoint = () => {
@@ -61,8 +59,7 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
         min: undefined,
         max: undefined,
         multiplier: 1,
-        offset: 0,
-        variableName: ''
+        offset: 0
       });
       setIsAdding(false);
     }
@@ -261,18 +258,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                     }
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">变量名称</Label>
-                  <Input
-                    placeholder="变量名称"
-                    title="控制变量名称"
-                    value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
-                      : setNewPoint({ ...newPoint, variableName: e.target.value })
-                    }
-                  />
-                </div>
               </div>
               
               <div className="space-y-1">
@@ -312,7 +297,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                   <TableHead>最大值</TableHead>
                   <TableHead>倍率</TableHead>
                   <TableHead>偏移量</TableHead>
-                  <TableHead>变量名称</TableHead>
                   <TableHead>描述</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -331,7 +315,6 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                     <TableCell>{point.max ?? '-'}</TableCell>
                     <TableCell>{point.multiplier ?? '-'}</TableCell>
                     <TableCell>{point.offset ?? '-'}</TableCell>
-                    <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">{point.description || '-'}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button

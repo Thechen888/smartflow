@@ -561,7 +561,7 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
             {configForm.logicType === 'BIND_INPUT' && (
               <>
                 <div>
-                  <Label>输出协议类型 *</Label>
+                  <Label>输出端设备 *</Label>
                   <Select
                     value={configForm.boundInputProtocol}
                     onValueChange={(value) => setConfigForm({ 

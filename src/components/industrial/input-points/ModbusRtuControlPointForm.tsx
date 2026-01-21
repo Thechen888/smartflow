@@ -6,9 +6,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Download, Upload, Pencil } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
 interface ModbusControlPoint {
@@ -57,8 +58,16 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
     hint: '',
     variableName: '',
     logicType: 'BIND_INPUT',
-    boundInputProtocol: 'MODBUS RTU 客户端',
-    boundInputPoint: 'voltage'
+    boundInputProtocol: 'MODBUS RTU 服务端',
+    boundInputPoint: 'valve_open'
+  });
+
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedPointForConfig, setSelectedPointForConfig] = useState<ModbusControlPoint | null>(null);
+  const [configForm, setConfigForm] = useState({
+    logicType: 'BIND_INPUT' as 'BIND_INPUT' | 'SCRIPT_ONLY',
+    boundInputProtocol: 'MODBUS RTU 服务端',
+    boundInputPoint: 'valve_open'
   });
 
   const addPoint = () => {
@@ -83,8 +92,8 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
         hint: '',
         variableName: '',
         logicType: 'BIND_INPUT',
-        boundInputProtocol: 'MODBUS RTU 客户端',
-        boundInputPoint: 'voltage'
+        boundInputProtocol: 'MODBUS RTU 服务端',
+        boundInputPoint: 'valve_open'
       });
       setIsAdding(false);
     }
@@ -108,16 +117,30 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
     setIsAdding(false);
   };
 
-  const getTypeExample = (type: string): string => {
-    const examples: Record<string, string> = {
-      'uint16': '0-65535 (无符号16位整数)',
-      'int16': '-32768-32767 (有符号16位整数)',
-      'uint32': '0-4294967295 (无符号32位整数)',
-      'int32': '-2147483648-2147483647 (有符号32位整数)',
-      'ascii': 'ASCII字符串 (可变长度)',
-      'ascii8': '8位ASCII字符串 (固定8字节)'
-    };
-    return examples[type] || '';
+  const openConfigDialog = (point: ModbusControlPoint) => {
+    setSelectedPointForConfig(point);
+    setConfigForm({
+      logicType: point.logicType || 'BIND_INPUT',
+      boundInputProtocol: point.boundInputProtocol || 'MODBUS RTU 服务端',
+      boundInputPoint: point.boundInputPoint || 'valve_open'
+    });
+    setConfigDialogOpen(true);
+  };
+
+  const saveConfig = () => {
+    if (selectedPointForConfig) {
+      const updatedPoint = {
+        ...selectedPointForConfig,
+        logicType: configForm.logicType,
+        boundInputProtocol: configForm.boundInputProtocol,
+        boundInputPoint: configForm.logicType === 'BIND_INPUT' ? configForm.boundInputPoint : undefined
+      };
+      onPointsChange(points.map(point => 
+        point.id === selectedPointForConfig.id ? updatedPoint : point
+      ));
+      setConfigDialogOpen(false);
+      setSelectedPointForConfig(null);
+    }
   };
 
   const exportConfig = () => {
@@ -164,29 +187,17 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
     return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
   };
 
-  const getRangeOrMapping = (point: ModbusControlPoint): string => {
-    if (point.type === 'ascii' || point.type === 'ascii8') {
-      return point.asciiInvalid ? `无效值: ${point.asciiInvalid}` : '-';
-    } else {
-      if (point.min !== undefined && point.max !== undefined) {
-        return `${point.min} - ${point.max}`;
-      }
-      return '-';
-    }
-  };
-
+  // Updated protocol options for output devices
   const protocolOptions = [
-    'MODBUS TCP 客户端',
-    'MODBUS RTU 客户端', 
-    'IEC104',
-    'IEC61850 客户端',
-    'DLT645 RTU 电表',
-    'DLT645 TCP 电表'
+    'MODBUS TCP 服务端',
+    'MODBUS RTU 服务端', 
+    'IEC104 服务端'
   ];
 
+  // Updated point options for output points
   const pointOptions = [
-    { value: 'voltage', label: 'voltage' },
-    { value: 'current', label: 'current' }
+    { value: 'valve_open', label: 'valve_open' },
+    { value: 'temperature_set', label: 'temperature_set' }
   ];
 
   return (
@@ -416,12 +427,11 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
               )}
               
               <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
-                <strong>类型说明:</strong> {getTypeExample(editingPoint ? editingPoint.type : newPoint.type)}
+                <strong>类型说明:</strong> {editingPoint ? editingPoint.type : newPoint.type}
               </div>
               
               <div className="text-xs text-gray-500 bg-green-50 p-2 rounded">
-                <strong>线性变换公式:</strong> 实际值 = A × 寄存器值 + B<br/>
-                <strong>寄存器类型:</strong> {editingPoint ? editingPoint.type : newPoint.type}
+                <strong>线性变换公式:</strong> 实际值 = A × 寄存器值 + B
               </div>
               
               <div className="flex justify-end space-x-2 pt-2">
@@ -447,7 +457,9 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
-                  <TableHead>范围/映射</TableHead>
+                  <TableHead>变量名称</TableHead>
+                  <TableHead>实际值范围</TableHead>
+                  <TableHead>线性变换</TableHead>
                   <TableHead>提示</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -466,29 +478,43 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
                     <TableCell>
                       {point.reverseByteOrder ? '反转' : '正常'}
                     </TableCell>
+                    <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">
-                      {getRangeOrMapping(point)}
+                      {point.min !== undefined && point.max !== undefined ? (
+                        <div>实际值: {point.min} - {point.max}</div>
+                      ) : (
+                        <div>未设置范围</div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {getLinearFormula(point.a || 1, point.b || 0)}
                     </TableCell>
                     <TableCell className="text-xs">{point.hint || '-'}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditingPoint(point)}
-                          title="编辑点位"
-                        >
-                          <Pencil className="h-4 w-4 text-blue-500" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deletePoint(point.id)}
-                          title="删除点位"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
+                    <TableCell className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditingPoint(point)}
+                        title="编辑点位"
+                      >
+                        <Pencil className="h-4 w-4 text-blue-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openConfigDialog(point)}
+                        title="配置逻辑"
+                      >
+                        <Settings2 className="h-4 w-4 text-purple-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deletePoint(point.id)}
+                        title="删除点位"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -503,6 +529,86 @@ const ModbusRtuControlPointForm: React.FC<ModbusRtuControlPointFormProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* 配置对话框 */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>配置控制点位逻辑</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>逻辑类型 *</Label>
+              <Select
+                value={configForm.logicType}
+                onValueChange={(value) => setConfigForm({ 
+                  ...configForm, 
+                  logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
+                  boundInputProtocol: value === 'BIND_INPUT' ? (configForm.boundInputProtocol || 'MODBUS RTU 服务端') : undefined,
+                  boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'valve_open') : undefined
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BIND_INPUT">绑定输出点位</SelectItem>
+                  <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {configForm.logicType === 'BIND_INPUT' && (
+              <>
+                <div>
+                  <Label>输出协议类型 *</Label>
+                  <Select
+                    value={configForm.boundInputProtocol}
+                    onValueChange={(value) => setConfigForm({ 
+                      ...configForm, 
+                      boundInputProtocol: value,
+                      boundInputPoint: 'valve_open'
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {protocolOptions.map(protocol => (
+                        <SelectItem key={protocol} value={protocol}>
+                          {protocol}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>输出点位选择 *</Label>
+                  <Select
+                    value={configForm.boundInputPoint}
+                    onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pointOptions.map(point => (
+                        <SelectItem key={point.value} value={point.value}>
+                          {point.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
+            <Button onClick={saveConfig}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

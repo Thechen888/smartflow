@@ -6,8 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Download, Upload, Pencil } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
 interface Iec104ControlPoint {
@@ -20,6 +21,10 @@ interface Iec104ControlPoint {
   multiplier?: number;
   offset?: number;
   description?: string;
+  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
+  boundInputProtocol?: string;
+  boundInputPoint?: string;
+  variableName?: string;
 }
 
 interface Iec104ControlPointFormProps {
@@ -41,7 +46,19 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
     min: undefined,
     max: undefined,
     multiplier: 1,
-    offset: 0
+    offset: 0,
+    variableName: '',
+    logicType: 'BIND_INPUT',
+    boundInputProtocol: 'IEC104 服务端',
+    boundInputPoint: '遥控开关1'
+  });
+
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [selectedPointForConfig, setSelectedPointForConfig] = useState<Iec104ControlPoint | null>(null);
+  const [configForm, setConfigForm] = useState({
+    logicType: 'BIND_INPUT' as 'BIND_INPUT' | 'SCRIPT_ONLY',
+    boundInputProtocol: 'IEC104 服务端',
+    boundInputPoint: '遥控开关1'
   });
 
   const addPoint = () => {
@@ -59,7 +76,11 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
         min: undefined,
         max: undefined,
         multiplier: 1,
-        offset: 0
+        offset: 0,
+        variableName: '',
+        logicType: 'BIND_INPUT',
+        boundInputProtocol: 'IEC104 服务端',
+        boundInputPoint: '遥控开关1'
       });
       setIsAdding(false);
     }
@@ -82,6 +103,32 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
   const startEditingPoint = (point: Iec104ControlPoint) => {
     setEditingPoint({ ...point });
     setIsAdding(true);
+  };
+
+  const openConfigDialog = (point: Iec104ControlPoint) => {
+    setSelectedPointForConfig(point);
+    setConfigForm({
+      logicType: point.logicType || 'BIND_INPUT',
+      boundInputProtocol: point.boundInputProtocol || 'IEC104 服务端',
+      boundInputPoint: point.boundInputPoint || '遥控开关1'
+    });
+    setConfigDialogOpen(true);
+  };
+
+  const saveConfig = () => {
+    if (selectedPointForConfig) {
+      const updatedPoint = {
+        ...selectedPointForConfig,
+        logicType: configForm.logicType,
+        boundInputProtocol: configForm.boundInputProtocol,
+        boundInputPoint: configForm.logicType === 'BIND_INPUT' ? configForm.boundInputPoint : undefined
+      };
+      onPointsChange(points.map(point => 
+        point.id === selectedPointForConfig.id ? updatedPoint : point
+      ));
+      setConfigDialogOpen(false);
+      setSelectedPointForConfig(null);
+    }
   };
 
   const exportConfig = () => {
@@ -130,6 +177,24 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
     };
     return labels[type] || type;
   };
+
+  const getLogicTypeLabel = (type: 'BIND_INPUT' | 'SCRIPT_ONLY' | undefined) => {
+    if (!type) return '绑定输入点位';
+    return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
+  };
+
+  // Updated protocol options for output devices
+  const protocolOptions = [
+    'MODBUS TCP 服务端',
+    'MODBUS RTU 服务端', 
+    'IEC104 服务端'
+  ];
+
+  // Updated point options for output points
+  const pointOptions = [
+    { value: '遥控开关1', label: '遥控开关1' },
+    { value: '设定值1', label: '设定值1' }
+  ];
 
   return (
     <div className="space-y-4">
@@ -266,6 +331,18 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
             </div>
 
             <div className="mt-4">
+              <Label>变量名称</Label>
+              <Input
+                value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
+                onChange={(e) => editingPoint 
+                  ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
+                  : setNewPoint({ ...newPoint, variableName: e.target.value })
+                }
+                placeholder="变量名称"
+              />
+            </div>
+
+            <div className="mt-4">
               <Label>描述</Label>
               <Input
                 value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
@@ -310,8 +387,11 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                 <TableHead>最大值</TableHead>
                 <TableHead>倍率</TableHead>
                 <TableHead>偏移量</TableHead>
+                <TableHead>变量名称</TableHead>
                 <TableHead>描述</TableHead>
-                <TableHead className="w-32">操作</TableHead>
+                <TableHead>逻辑类型</TableHead>
+                <TableHead>绑定输出点位</TableHead>
+                <TableHead>操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -330,7 +410,16 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                   <TableCell>{point.max ?? '-'}</TableCell>
                   <TableCell>{point.multiplier ?? '-'}</TableCell>
                   <TableCell>{point.offset ?? '-'}</TableCell>
+                  <TableCell className="text-sm">{point.variableName || '-'}</TableCell>
                   <TableCell className="text-sm">{point.description || '-'}</TableCell>
+                  <TableCell className="text-sm">
+                    {getLogicTypeLabel(point.logicType)}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {point.logicType === 'BIND_INPUT' ? 
+                      `${point.boundInputProtocol || 'IEC104 服务端'} - ${point.boundInputPoint || '遥控开关1'}` : 
+                      '-'}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       <Button
@@ -340,6 +429,14 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
                         title="编辑"
                       >
                         <Pencil className="h-4 w-4 text-blue-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openConfigDialog(point)}
+                        title="配置逻辑"
+                      >
+                        <Settings2 className="h-4 w-4 text-purple-500" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -362,6 +459,86 @@ const Iec104ControlPointForm: React.FC<Iec104ControlPointFormProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* 配置对话框 */}
+      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>配置控制点位逻辑</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>逻辑类型 *</Label>
+              <Select
+                value={configForm.logicType}
+                onValueChange={(value) => setConfigForm({ 
+                  ...configForm, 
+                  logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
+                  boundInputProtocol: value === 'BIND_INPUT' ? (configForm.boundInputProtocol || 'IEC104 服务端') : undefined,
+                  boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || '遥控开关1') : undefined
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BIND_INPUT">绑定输出点位</SelectItem>
+                  <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {configForm.logicType === 'BIND_INPUT' && (
+              <>
+                <div>
+                  <Label>输出协议类型 *</Label>
+                  <Select
+                    value={configForm.boundInputProtocol}
+                    onValueChange={(value) => setConfigForm({ 
+                      ...configForm, 
+                      boundInputProtocol: value,
+                      boundInputPoint: '遥控开关1'
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {protocolOptions.map(protocol => (
+                        <SelectItem key={protocol} value={protocol}>
+                          {protocol}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>输出点位选择 *</Label>
+                  <Select
+                    value={configForm.boundInputPoint}
+                    onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pointOptions.map(point => (
+                        <SelectItem key={point.value} value={point.value}>
+                          {point.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
+            <Button onClick={saveConfig}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -16,6 +16,7 @@ import Iec104ServerNodeForm from './nodes/Iec104ServerNodeForm';
 import Iec104ClientNodeForm from './nodes/Iec104ClientNodeForm';
 import Iec61850ServerNodeForm from './nodes/Iec61850ServerNodeForm';
 import Iec61850ClientNodeForm from './nodes/Iec61850ClientNodeForm';
+import EmsIoNodeForm from './nodes/EmsIoNodeForm';
 
 // Updated ProtocolType definition
 type ProtocolType = 
@@ -143,11 +144,11 @@ interface Iec61850ClientConfig {
   autoReconnect: boolean;
 }
 
-// EMS IO Config - with DI/DO configuration fields
+// EMS IO Config interface
 interface EmsIoConfig {
-  diStartAddress: number;
+  diStartAddress: string;
   diCount: number;
-  doStartAddress: number;
+  doStartAddress: string;
   doCount: number;
 }
 
@@ -453,56 +454,10 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
         );
       case 'EMS_IO':
         return (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label>DI起始地址</Label>
-                <Input
-                  type="number"
-                  value={editedNode.config.diStartAddress}
-                  onChange={(e) => setEditedNode({
-                    ...editedNode,
-                    config: { ...editedNode.config, diStartAddress: parseInt(e.target.value) || 1 }
-                  })}
-                />
-              </div>
-              <div>
-                <Label>计数（DI）</Label>
-                <Input
-                  type="number"
-                  value={editedNode.config.diCount}
-                  onChange={(e) => setEditedNode({
-                    ...editedNode,
-                    config: { ...editedNode.config, diCount: parseInt(e.target.value) || 10 }
-                  })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label>DO起始地址</Label>
-                <Input
-                  type="number"
-                  value={editedNode.config.doStartAddress}
-                  onChange={(e) => setEditedNode({
-                    ...editedNode,
-                    config: { ...editedNode.config, doStartAddress: parseInt(e.target.value) || 1 }
-                  })}
-                />
-              </div>
-              <div>
-                <Label>计数（DO）</Label>
-                <Input
-                  type="number"
-                  value={editedNode.config.doCount}
-                  onChange={(e) => setEditedNode({
-                    ...editedNode,
-                    config: { ...editedNode.config, doCount: parseInt(e.target.value) || 10 }
-                  })}
-                />
-              </div>
-            </div>
-          </div>
+          <EmsIoNodeForm
+            config={editedNode.config}
+            onConfigChange={(config) => setEditedNode({ ...editedNode, config })}
+          />
         );
       default:
         return <div>未知协议配置</div>;

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
@@ -18,7 +17,7 @@ interface ModbusRegister {
   address: number;
   type: 'uint16' | 'int16' | 'uint32' | 'int32' | 'ascii' | 'ascii8';
   name: string;
-  reverseByteOrder: boolean;
+  byteOrder: 'abcd' | 'cdab' | 'dcba' | 'badc';
   comment: string;
   min?: number;
   max?: number;
@@ -29,7 +28,6 @@ interface ModbusRegister {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string; // 新增变量名称字段
 }
 
 interface ModbusRtuOutputPointFormProps {
@@ -49,15 +47,14 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
     address: 0,
     type: 'uint16',
     name: '',
-    reverseByteOrder: false,
+    byteOrder: 'abcd',
     comment: '',
     min: undefined,
     max: undefined,
     asciiInvalid: '',
     a: 1,
     b: 0,
-    hint: '',
-    variableName: '' // 初始化变量名称字段
+    hint: ''
   });
 
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -81,15 +78,14 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
         address: 0, 
         type: 'uint16', 
         name: '', 
-        reverseByteOrder: false, 
+        byteOrder: 'abcd',
         comment: '',
         min: undefined,
         max: undefined,
         asciiInvalid: '',
         a: 1,
         b: 0,
-        hint: '',
-        variableName: '' // 重置变量名称字段
+        hint: ''
       });
       setIsAddingRegister(false);
     }
@@ -111,12 +107,6 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
   const startEditingRegister = (register: ModbusRegister) => {
     setEditingRegister({ ...register });
     setIsAddingRegister(false);
-  };
-
-  const toggleByteOrder = (id: string) => {
-    onRegistersChange(registers.map(reg => 
-      reg.id === id ? { ...reg, reverseByteOrder: !reg.reverseByteOrder } : reg
-    ));
   };
 
   // 配置对话框处理
@@ -226,6 +216,16 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
     { value: 'current', label: 'current' }
   ];
 
+  const getByteOrderLabel = (byteOrder: string) => {
+    const labels: Record<string, string> = {
+      'abcd': 'abcd (标准)',
+      'cdab': 'cdab (交换高低字节)',
+      'dcba': 'dcba (完全反转)',
+      'badc': 'badc (交换字节内位)'
+    };
+    return labels[byteOrder] || byteOrder;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -322,27 +322,25 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                <div className="flex items-center space-x-2" title="是否反转多字节数据的字节顺序">
-                  <Checkbox
-                    checked={editingRegister ? editingRegister.reverseByteOrder : newRegister.reverseByteOrder}
-                    onCheckedChange={(checked) => editingRegister 
-                      ? setEditingRegister({ ...editingRegister, reverseByteOrder: checked as boolean })
-                      : setNewRegister({ ...newRegister, reverseByteOrder: checked as boolean })
-                    }
-                  />
-                  <Label className="text-sm">反转字节序</Label>
-                </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">变量名称</Label>
-                  <Input
-                    placeholder="变量名称"
-                    title="输出变量名称"
-                    value={editingRegister ? (editingRegister.variableName ?? '') : (newRegister.variableName ?? '')}
-                    onChange={(e) => editingRegister 
-                      ? setEditingRegister({ ...editingRegister, variableName: e.target.value })
-                      : setNewRegister({ ...newRegister, variableName: e.target.value })
+                  <Label className="text-xs">字节序</Label>
+                  <Select
+                    value={editingRegister ? editingRegister.byteOrder : newRegister.byteOrder}
+                    onValueChange={(value) => editingRegister 
+                      ? setEditingRegister({ ...editingRegister, byteOrder: value as any })
+                      : setNewRegister({ ...newRegister, byteOrder: value as any })
                     }
-                  />
+                  >
+                    <SelectTrigger className="w-full" title="字节序排列方式">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="abcd">abcd (标准)</SelectItem>
+                      <SelectItem value="cdab">cdab (交换高低字节)</SelectItem>
+                      <SelectItem value="dcba">dcba (完全反转)</SelectItem>
+                      <SelectItem value="badc">badc (交换字节内位)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">注释</Label>
@@ -484,7 +482,6 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
-                  <TableHead>变量名称</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
                   <TableHead>逻辑类型</TableHead>
@@ -505,9 +502,8 @@ const ModbusRtuOutputPointForm: React.FC<ModbusRtuOutputPointFormProps> = ({
                     </TableCell>
                     <TableCell className="font-medium">{register.name}</TableCell>
                     <TableCell>
-                      {register.reverseByteOrder ? '反转' : '正常'}
+                      {getByteOrderLabel(register.byteOrder)}
                     </TableCell>
-                    <TableCell className="text-xs">{register.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">
                       {register.min !== undefined && register.max !== undefined ? (
                         <div>实际值: {register.min} - {register.max}</div>

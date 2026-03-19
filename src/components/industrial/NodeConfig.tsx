@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import NodeConfigDialog from '@/components/industrial/NodeConfigDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
-// Updated ProtocolType definition to include MODBUS Server and EMS_IO
+// Updated ProtocolType definition to include MODBUS Server and EMS IO
 type ProtocolType = 
   | 'MODBUS_TCP' 
   | 'MODBUS_RTU' 
@@ -79,7 +79,7 @@ interface ModbusRtuServerConfig {
   timeout: number;
 }
 
-// Other protocol configs remain the same
+// DLT645 RTU Config
 interface Dlt645RtuConfig {
   serialPort: string;
   baudRate: number;
@@ -91,6 +91,7 @@ interface Dlt645RtuConfig {
   timeout: number;
 }
 
+// DLT645 TCP Config
 interface Dlt645TcpConfig {
   host: string;
   port: number;
@@ -100,6 +101,7 @@ interface Dlt645TcpConfig {
   retryCount: number;
 }
 
+// IEC104 Server Config
 interface Iec104ServerConfig {
   bindAddress: string;
   port: number;
@@ -113,6 +115,7 @@ interface Iec104ServerConfig {
   t3Timeout: number;
 }
 
+// IEC104 Client Config
 interface Iec104ClientConfig {
   host: string;
   port: number;
@@ -127,6 +130,7 @@ interface Iec104ClientConfig {
   autoReconnect: boolean;
 }
 
+// IEC61850 Server Config
 interface Iec61850ServerConfig {
   bindAddress: string;
   mmsPort: number;
@@ -137,6 +141,7 @@ interface Iec61850ServerConfig {
   maxConnections: number;
 }
 
+// IEC61850 Client Config
 interface Iec61850ClientConfig {
   host: string;
   mmsPort: number;
@@ -146,11 +151,11 @@ interface Iec61850ClientConfig {
   autoReconnect: boolean;
 }
 
-// EMS IO Config - with DI/DO configuration fields
+// EMS IO Config (updated with DI/DO configuration fields)
 interface EmsIoConfig {
-  diStartAddress: number;
+  diStartAddress: string;
   diCount: number;
-  doStartAddress: number;
+  doStartAddress: string;
   doCount: number;
 }
 
@@ -199,7 +204,7 @@ const NodeConfig = () => {
 
   // Check if protocol is input (client) or output (server)
   const isInputProtocol = (protocol: ProtocolType): boolean => {
-    // Input protocols: MODBUS clients, DLT645 protocols, IEC104/IEC61850 clients, and EMS_IO
+    // Input protocols: MODBUS clients, DLT645 protocols, IEC104/IEC61850 clients, and EMS IO
     return (
       protocol === 'MODBUS_TCP' || 
       protocol === 'MODBUS_RTU' || 
@@ -318,9 +323,9 @@ const NodeConfig = () => {
         };
       case 'EMS_IO':
         return {
-          diStartAddress: 1,
+          diStartAddress: 'DI001',
           diCount: 10,
-          doStartAddress: 1,
+          doStartAddress: 'DO001',
           doCount: 10
         };
       default:
@@ -425,9 +430,9 @@ const NodeConfig = () => {
         id: 'ems-io-1',
         name: 'EMS IO',
         protocolType: 'EMS_IO',
-        description: 'EMS输入输出点位',
+        description: '能源管理系统IO点位',
         enabled: true,
-        status: 'ONLINE',
+        status: 'OFFLINE',
         config: createDefaultConfig('EMS_IO')
       }
     ];
@@ -534,6 +539,97 @@ const NodeConfig = () => {
       return !isInputProtocol(node.protocolType);
     }
   });
+
+  // EMS IO Form (updated with DI/DO configuration fields)
+  const EmsIoForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      description: '',
+      config: createDefaultConfig('EMS_IO')
+    });
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>节点名称 *</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="输入节点名称"
+            />
+          </div>
+          <div>
+            <Label>描述</Label>
+            <Input
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="节点描述"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>DI起始地址 *</Label>
+            <Input
+              value={formData.config.diStartAddress}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, diStartAddress: e.target.value }
+              })}
+              placeholder="例如: DI001"
+            />
+          </div>
+          <div>
+            <Label>计数（DI）*</Label>
+            <Input
+              type="number"
+              value={formData.config.diCount}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, diCount: parseInt(e.target.value) || 0 }
+              })}
+              placeholder="DI点位数量"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>DO起始地址 *</Label>
+            <Input
+              value={formData.config.doStartAddress}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, doStartAddress: e.target.value }
+              })}
+              placeholder="例如: DO001"
+            />
+          </div>
+          <div>
+            <Label>计数（DO）*</Label>
+            <Input
+              type="number"
+              value={formData.config.doCount}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, doCount: parseInt(e.target.value) || 0 }
+              })}
+              placeholder="DO点位数量"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button variant="outline" onClick={() => setIsAdding(false)}>取消</Button>
+          <Button onClick={() => onSubmit(formData)} disabled={!formData.name}>
+            添加节点
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   // MODBUS TCP Client Form
   const ModbusTcpClientForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {

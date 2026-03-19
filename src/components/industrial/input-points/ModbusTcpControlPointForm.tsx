@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
 
@@ -18,7 +17,7 @@ interface ModbusControlPoint {
   address: number;
   type: 'uint16' | 'int16' | 'uint32' | 'int32' | 'ascii' | 'ascii8';
   name: string;
-  reverseByteOrder: boolean;
+  byteOrder: 'abcd' | 'cdab' | 'dcba' | 'badc';
   comment: string;
   min?: number;
   max?: number;
@@ -29,7 +28,6 @@ interface ModbusControlPoint {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string;
 }
 
 interface ModbusTcpControlPointFormProps {
@@ -48,7 +46,7 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
     address: 0,
     type: 'uint16',
     name: '',
-    reverseByteOrder: false,
+    byteOrder: 'abcd',
     comment: '',
     min: undefined,
     max: undefined,
@@ -56,7 +54,6 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
     a: 1,
     b: 0,
     hint: '',
-    variableName: '',
     logicType: 'BIND_INPUT',
     boundInputProtocol: 'MODBUS TCP 服务端',
     boundInputPoint: 'motor_start'
@@ -82,7 +79,7 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
         address: 0, 
         type: 'uint16', 
         name: '', 
-        reverseByteOrder: false, 
+        byteOrder: 'abcd',
         comment: '',
         min: undefined,
         max: undefined,
@@ -90,7 +87,6 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
         a: 1,
         b: 0,
         hint: '',
-        variableName: '',
         logicType: 'BIND_INPUT',
         boundInputProtocol: 'MODBUS TCP 服务端',
         boundInputPoint: 'motor_start'
@@ -200,6 +196,16 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
     { value: 'motor_speed', label: 'motor_speed' }
   ];
 
+  const getByteOrderLabel = (byteOrder: string) => {
+    const labels: Record<string, string> = {
+      'abcd': 'abcd (标准)',
+      'cdab': 'cdab (交换高低字节)',
+      'dcba': 'dcba (完全反转)',
+      'badc': 'badc (交换字节内位)'
+    };
+    return labels[byteOrder] || byteOrder;
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -296,27 +302,25 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
-                <div className="flex items-center space-x-2" title="是否反转多字节数据的字节顺序">
-                  <Checkbox
-                    checked={editingPoint ? editingPoint.reverseByteOrder : newPoint.reverseByteOrder}
-                    onCheckedChange={(checked) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, reverseByteOrder: checked as boolean })
-                      : setNewPoint({ ...newPoint, reverseByteOrder: checked as boolean })
-                    }
-                  />
-                  <Label className="text-sm">反转字节序</Label>
-                </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">变量名称</Label>
-                  <Input
-                    placeholder="变量名称"
-                    title="控制变量名称"
-                    value={editingPoint ? (editingPoint.variableName ?? '') : (newPoint.variableName ?? '')}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, variableName: e.target.value })
-                      : setNewPoint({ ...newPoint, variableName: e.target.value })
+                  <Label className="text-xs">字节序</Label>
+                  <Select
+                    value={editingPoint ? editingPoint.byteOrder : newPoint.byteOrder}
+                    onValueChange={(value) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, byteOrder: value as any })
+                      : setNewPoint({ ...newPoint, byteOrder: value as any })
                     }
-                  />
+                  >
+                    <SelectTrigger className="w-full" title="字节序排列方式">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="abcd">abcd (标准)</SelectItem>
+                      <SelectItem value="cdab">cdab (交换高低字节)</SelectItem>
+                      <SelectItem value="dcba">dcba (完全反转)</SelectItem>
+                      <SelectItem value="badc">badc (交换字节内位)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">注释</Label>
@@ -457,10 +461,10 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
                   <TableHead>类型</TableHead>
                   <TableHead>名称</TableHead>
                   <TableHead>字节序</TableHead>
-                  <TableHead>变量名称</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
                   <TableHead>提示</TableHead>
+                  <TableHead>绑定输出点位</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -476,9 +480,8 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
                     </TableCell>
                     <TableCell className="font-medium">{point.name}</TableCell>
                     <TableCell>
-                      {point.reverseByteOrder ? '反转' : '正常'}
+                      {getByteOrderLabel(point.byteOrder)}
                     </TableCell>
-                    <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">
                       {point.min !== undefined && point.max !== undefined ? (
                         <div>实际值: {point.min} - {point.max}</div>
@@ -490,6 +493,10 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
                       {getLinearFormula(point.a || 1, point.b || 0)}
                     </TableCell>
                     <TableCell className="text-xs">{point.hint || '-'}</TableCell>
+                    <TableCell className="text-xs">
+                      {point.logicType === 'SCRIPT_ONLY' ? '纯脚本' : 
+                       `${point.boundInputProtocol || 'MODBUS TCP 服务端'} - ${point.boundInputPoint || 'motor_start'}`}
+                    </TableCell>
                     <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -561,7 +568,7 @@ const ModbusTcpControlPointForm: React.FC<ModbusTcpControlPointFormProps> = ({
             {configForm.logicType === 'BIND_INPUT' && (
               <>
                 <div>
-                  <Label>输出协议类型 *</Label>
+                  <Label>输出端设备 *</Label>
                   <Select
                     value={configForm.boundInputProtocol}
                     onValueChange={(value) => setConfigForm({ 

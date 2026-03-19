@@ -9,7 +9,7 @@ import { Plus, Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
-// Updated ProtocolType definition to include MODBUS Server and EMS_IO
+// Updated ProtocolType definition to include MODBUS Server and EMS IO
 type ProtocolType = 
   | 'MODBUS_TCP' 
   | 'MODBUS_RTU' 
@@ -72,7 +72,6 @@ interface ModbusControlPoint {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string;
 }
 
 interface Iec104InputPoint {
@@ -100,13 +99,20 @@ interface Iec104ControlPoint {
 }
 
 // EMS IO Point interfaces
-interface EmsIoPoint {
+interface EmsIoDiPoint {
   id: string;
   name: string;
-  pointType: 'DI' | 'DO';
   address: string;
   description?: string;
-  enabled: boolean;
+  scanRate?: number;
+}
+
+interface EmsIoDoPoint {
+  id: string;
+  name: string;
+  address: string;
+  description?: string;
+  defaultValue?: boolean;
 }
 
 // Protocol display name mapping
@@ -149,6 +155,204 @@ import ModbusRtuControlPointForm from './input-points/ModbusRtuControlPointForm'
 import Iec104ControlPointForm from './input-points/Iec104ControlPointForm';
 // Import EMS IO form components
 import EmsIoPointForm from './input-points/EmsIoPointForm';
+
+// EMS IO DI Point Form Component
+const EmsIoDiPointForm = ({ points, onPointsChange }: { points: EmsIoDiPoint[]; onPointsChange: (points: EmsIoDiPoint[]) => void }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingPoint, setEditingPoint] = useState<EmsIoDiPoint | null>(null);
+
+  const updatePoint = () => {
+    if (editingPoint) {
+      onPointsChange(points.map(point => 
+        point.id === editingPoint.id ? editingPoint : point
+      ));
+      setEditingPoint(null);
+    }
+  };
+
+  const startEditingPoint = (point: EmsIoDiPoint) => {
+    setEditingPoint({ ...point });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <CardTitle>EMS IO DI点位配置</CardTitle>
+      </div>
+
+      <Card>
+        <CardContent>
+          {editingPoint && (
+            <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
+              <div className="space-y-1">
+                <Label className="text-xs">备注</Label>
+                <Input
+                  placeholder="点位备注"
+                  value={editingPoint.description || ''}
+                  onChange={(e) => setEditingPoint({ ...editingPoint, description: e.target.value })}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setEditingPoint(null);
+                }}>
+                  取消
+                </Button>
+                <Button size="sm" onClick={updatePoint}>
+                  保存
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3 font-medium">地址</th>
+                  <th className="text-left py-2 px-3 font-medium">路径</th>
+                  <th className="text-left py-2 px-3 font-medium">初始值</th>
+                  <th className="text-left py-2 px-3 font-medium">备注</th>
+                  <th className="w-32 py-2 px-3 font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {points.map((point) => (
+                  <tr key={point.id} className="border-b hover:bg-gray-50">
+                    <td className="py-2 px-3">{point.address}</td>
+                    <td className="py-2 px-3">{point.name}</td>
+                    <td className="py-2 px-3">-</td>
+                    <td className="py-2 px-3 text-sm">{point.description || '-'}</td>
+                    <td className="py-2 px-3">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingPoint(point)}
+                          title="编辑"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                          </svg>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {points.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              暂无DI点位
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// EMS IO DO Point Form Component
+const EmsIoDoPointForm = ({ points, onPointsChange }: { points: EmsIoDoPoint[]; onPointsChange: (points: EmsIoDoPoint[]) => void }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingPoint, setEditingPoint] = useState<EmsIoDoPoint | null>(null);
+
+  const updatePoint = () => {
+    if (editingPoint) {
+      onPointsChange(points.map(point => 
+        point.id === editingPoint.id ? editingPoint : point
+      ));
+      setEditingPoint(null);
+    }
+  };
+
+  const startEditingPoint = (point: EmsIoDoPoint) => {
+    setEditingPoint({ ...point });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <CardTitle>EMS IO DO点位配置</CardTitle>
+      </div>
+
+      <Card>
+        <CardContent>
+          {editingPoint && (
+            <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
+              <div className="space-y-1">
+                <Label className="text-xs">备注</Label>
+                <Input
+                  placeholder="点位备注"
+                  value={editingPoint.description || ''}
+                  onChange={(e) => setEditingPoint({ ...editingPoint, description: e.target.value })}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setEditingPoint(null);
+                }}>
+                  取消
+                </Button>
+                <Button size="sm" onClick={updatePoint}>
+                  保存
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3 font-medium">地址</th>
+                  <th className="text-left py-2 px-3 font-medium">路径</th>
+                  <th className="text-left py-2 px-3 font-medium">初始值</th>
+                  <th className="text-left py-2 px-3 font-medium">备注</th>
+                  <th className="w-32 py-2 px-3 font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {points.map((point) => (
+                  <tr key={point.id} className="border-b hover:bg-gray-50">
+                    <td className="py-2 px-3">{point.address}</td>
+                    <td className="py-2 px-3">{point.name}</td>
+                    <td className="py-2 px-3">{point.defaultValue ? 'True' : 'False'}</td>
+                    <td className="py-2 px-3 text-sm">{point.description || '-'}</td>
+                    <td className="py-2 px-3">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingPoint(point)}
+                          title="编辑"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                          </svg>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {points.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              暂无DO点位
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
 
 const InputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
@@ -384,42 +588,38 @@ const InputPointConfig = () => {
   const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
   const [iec61850Config, setIec61850Config] = useState({ address: 'LD1/LLN0.MX.Vol', dataType: 'FLOAT32', scanRate: 1000 });
 
-  // EMS IO config states - updated with specific values
-  const [emsIoDiPoints, setEmsIoDiPoints] = useState<EmsIoPoint[]>([
+  // EMS IO config states - Updated with the requested values
+  const [emsIoDiPoints, setEmsIoDiPoints] = useState<EmsIoDiPoint[]>([
     {
-      id: 'ems-di-1',
+      id: 'di-1',
       name: 'PG7',
-      pointType: 'DI',
       address: '1',
       description: '!water',
-      enabled: true
+      scanRate: 100
     },
     {
-      id: 'ems-di-2',
+      id: 'di-2',
       name: 'PD4',
-      pointType: 'DI',
       address: '2',
       description: '!door',
-      enabled: true
+      scanRate: 500
     }
   ]);
 
-  const [emsIoDoPoints, setEmsIoDoPoints] = useState<EmsIoPoint[]>([
+  const [emsIoDoPoints, setEmsIoDoPoints] = useState<EmsIoDoPoint[]>([
     {
-      id: 'ems-do-1',
+      id: 'do-1',
       name: 'PG7',
-      pointType: 'DO',
       address: '1',
       description: '!water',
-      enabled: true
+      defaultValue: false
     },
     {
-      id: 'ems-do-2',
+      id: 'do-2',
       name: 'PD4',
-      pointType: 'DO',
       address: '2',
       description: '!door',
-      enabled: true
+      defaultValue: true
     }
   ]);
 
@@ -466,7 +666,7 @@ const InputPointConfig = () => {
         id: 'ems-io-1',
         name: 'EMS IO',
         protocolType: 'EMS_IO',
-        description: 'EMS输入输出点位'
+        description: '能源管理系统IO点位'
       }
     ];
     setNodes(defaultNodes);
@@ -481,6 +681,21 @@ const InputPointConfig = () => {
     const matchesName = filterName === '' || node.name.toLowerCase().includes(filterName.toLowerCase());
     return matchesProtocol && matchesName;
   });
+
+  // Determine active tab based on selected node
+  useEffect(() => {
+    if (selectedNode?.protocolType === 'EMS_IO') {
+      // For EMS IO, default to DI tab if not already set to DI/DO
+      if (activeTab !== 'di' && activeTab !== 'do') {
+        setActiveTab('di');
+      }
+    } else {
+      // For other protocols, default to input tab if not already set to input/control
+      if (activeTab !== 'input' && activeTab !== 'control') {
+        setActiveTab('input');
+      }
+    }
+  }, [selectedNode, activeTab]);
 
   return (
     <div className="space-y-6">
@@ -560,6 +775,30 @@ const InputPointConfig = () => {
         <CardContent>
           {selectedNode && (
             <>
+              {/* EMS IO: show DI/DO tabs */}
+              {selectedNode.protocolType === 'EMS_IO' && (
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'di' | 'do')}>
+                  <TabsList>
+                    <TabsTrigger value="di">DI点位</TabsTrigger>
+                    <TabsTrigger value="do">DO点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="di">
+                    <EmsIoDiPointForm
+                      points={emsIoDiPoints}
+                      onPointsChange={setEmsIoDiPoints}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="do">
+                    <EmsIoDoPointForm
+                      points={emsIoDoPoints}
+                      onPointsChange={setEmsIoDoPoints}
+                    />
+                  </TabsContent>
+                </Tabs>
+              )}
+              
               {/* MODBUS TCP/RTU: show input and control tabs */}
               {(selectedNode.protocolType === 'MODBUS_TCP' || 
                 selectedNode.protocolType === 'MODBUS_RTU') && (

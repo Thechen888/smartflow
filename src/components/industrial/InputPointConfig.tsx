@@ -9,7 +9,7 @@ import { Plus, Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
-// Updated ProtocolType definition to include MODBUS Server
+// Updated ProtocolType definition to include MODBUS Server and EMS_IO
 type ProtocolType = 
   | 'MODBUS_TCP' 
   | 'MODBUS_RTU' 
@@ -20,7 +20,8 @@ type ProtocolType =
   | 'IEC104_SERVER' 
   | 'IEC104_CLIENT' 
   | 'IEC61850_SERVER' 
-  | 'IEC61850_CLIENT';
+  | 'IEC61850_CLIENT'
+  | 'EMS_IO';
 
 interface CommunicationNode {
   id: string;
@@ -98,6 +99,16 @@ interface Iec104ControlPoint {
   description?: string;
 }
 
+// EMS IO Point interfaces
+interface EmsIoPoint {
+  id: string;
+  name: string;
+  pointType: 'DI' | 'DO';
+  address: string;
+  description?: string;
+  enabled: boolean;
+}
+
 // Protocol display name mapping
 const getProtocolDisplayName = (protocol: ProtocolType): string => {
   const displayNames: Record<ProtocolType, string> = {
@@ -110,7 +121,8 @@ const getProtocolDisplayName = (protocol: ProtocolType): string => {
     'IEC104_SERVER': 'IEC104 服务端',
     'IEC104_CLIENT': 'IEC104 客户端',
     'IEC61850_SERVER': 'IEC61850 服务端',
-    'IEC61850_CLIENT': 'IEC61850 客户端'
+    'IEC61850_CLIENT': 'IEC61850 客户端',
+    'EMS_IO': 'EMS IO'
   };
   return displayNames[protocol];
 };
@@ -121,6 +133,7 @@ const getProtocolGroup = (protocol: ProtocolType): string => {
   if (protocol.startsWith('DLT645')) return 'DLT645';
   if (protocol.startsWith('IEC104')) return 'IEC104';
   if (protocol.startsWith('IEC61850')) return 'IEC61850';
+  if (protocol === 'EMS_IO') return 'EMS_IO';
   return 'OTHER';
 };
 
@@ -134,13 +147,15 @@ import Iec61850InputPointForm from './input-points/Iec61850InputPointForm';
 import ModbusTcpControlPointForm from './input-points/ModbusTcpControlPointForm';
 import ModbusRtuControlPointForm from './input-points/ModbusRtuControlPointForm';
 import Iec104ControlPointForm from './input-points/Iec104ControlPointForm';
+// Import EMS IO form components
+import EmsIoPointForm from './input-points/EmsIoPointForm';
 
 const InputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
   const [filterProtocol, setFilterProtocol] = useState<string>('ALL');
   const [filterName, setFilterName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'input' | 'control'>('input');
+  const [activeTab, setActiveTab] = useState<'input' | 'control' | 'di' | 'do'>('input');
   
   // MODBUS input config state
   const [modbusScanEntries, setModbusScanEntries] = useState<ModbusScanEntry[]>([
@@ -369,6 +384,45 @@ const InputPointConfig = () => {
   const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
   const [iec61850Config, setIec61850Config] = useState({ address: 'LD1/LLN0.MX.Vol', dataType: 'FLOAT32', scanRate: 1000 });
 
+  // EMS IO config states
+  const [emsIoDiPoints, setEmsIoDiPoints] = useState<EmsIoPoint[]>([
+    {
+      id: 'ems-di-1',
+      name: '开关状态1',
+      pointType: 'DI',
+      address: 'DI001',
+      description: '主开关状态',
+      enabled: true
+    },
+    {
+      id: 'ems-di-2',
+      name: '报警信号1',
+      pointType: 'DI',
+      address: 'DI002',
+      description: '紧急报警信号',
+      enabled: true
+    }
+  ]);
+
+  const [emsIoDoPoints, setEmsIoDoPoints] = useState<EmsIoPoint[]>([
+    {
+      id: 'ems-do-1',
+      name: '控制输出1',
+      pointType: 'DO',
+      address: 'DO001',
+      description: '电机启停控制',
+      enabled: true
+    },
+    {
+      id: 'ems-do-2',
+      name: '报警输出1',
+      pointType: 'DO',
+      address: 'DO002',
+      description: '声光报警控制',
+      enabled: true
+    }
+  ]);
+
   // Get nodes from parent component or global state
   useEffect(() => {
     const defaultNodes: CommunicationNode[] = [
@@ -407,6 +461,12 @@ const InputPointConfig = () => {
         name: 'IEC61850 客户端',
         protocolType: 'IEC61850_CLIENT',
         description: '连接远程IED设备'
+      },
+      {
+        id: 'ems-io-1',
+        name: 'EMS IO',
+        protocolType: 'EMS_IO',
+        description: 'EMS输入输出点位'
       }
     ];
     setNodes(defaultNodes);
@@ -448,6 +508,7 @@ const InputPointConfig = () => {
                   <SelectItem value="DLT645">DLT645</SelectItem>
                   <SelectItem value="IEC104">IEC104</SelectItem>
                   <SelectItem value="IEC61850">IEC61850</SelectItem>
+                  <SelectItem value="EMS_IO">EMS IO</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -558,10 +619,37 @@ const InputPointConfig = () => {
                 </Tabs>
               )}
               
+              {/* EMS IO: show DI and DO tabs */}
+              {selectedNode.protocolType === 'EMS_IO' && (
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'di' | 'do')}>
+                  <TabsList>
+                    <TabsTrigger value="di">DI点位</TabsTrigger>
+                    <TabsTrigger value="do">DO点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="di">
+                    <EmsIoPointForm
+                      points={emsIoDiPoints}
+                      pointType="DI"
+                      onPointsChange={setEmsIoDiPoints}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="do">
+                    <EmsIoPointForm
+                      points={emsIoDoPoints}
+                      pointType="DO"
+                      onPointsChange={setEmsIoDoPoints}
+                    />
+                  </TabsContent>
+                </Tabs>
+              )}
+              
               {/* Other protocols: only show input form */}
               {(selectedNode.protocolType !== 'MODBUS_TCP' && 
                 selectedNode.protocolType !== 'MODBUS_RTU' &&
-                selectedNode.protocolType !== 'IEC104_CLIENT') && (
+                selectedNode.protocolType !== 'IEC104_CLIENT' &&
+                selectedNode.protocolType !== 'EMS_IO') && (
                 <>
                   {selectedNode.protocolType === 'DLT645_RTU' && (
                     <Dlt645RtuInputPointForm

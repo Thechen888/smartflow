@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import NodeConfigDialog from '@/components/industrial/NodeConfigDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
-// Updated ProtocolType definition to include MODBUS Server
+// Updated ProtocolType definition to include MODBUS Server and EMS_IO
 type ProtocolType = 
   | 'MODBUS_TCP' 
   | 'MODBUS_RTU' 
@@ -24,7 +24,8 @@ type ProtocolType =
   | 'IEC104_SERVER' 
   | 'IEC104_CLIENT' 
   | 'IEC61850_SERVER' 
-  | 'IEC61850_CLIENT';
+  | 'IEC61850_CLIENT'
+  | 'EMS_IO';
 
 // Base node interface
 interface BaseNode {
@@ -145,6 +146,11 @@ interface Iec61850ClientConfig {
   autoReconnect: boolean;
 }
 
+// EMS IO Config - minimal config with only name and description
+interface EmsIoConfig {
+  // No additional configuration needed for EMS IO
+}
+
 // Updated CommunicationNode type
 type CommunicationNode = BaseNode & (
   | { protocolType: 'MODBUS_TCP'; config: ModbusTcpClientConfig }
@@ -157,6 +163,7 @@ type CommunicationNode = BaseNode & (
   | { protocolType: 'IEC104_CLIENT'; config: Iec104ClientConfig }
   | { protocolType: 'IEC61850_SERVER'; config: Iec61850ServerConfig }
   | { protocolType: 'IEC61850_CLIENT'; config: Iec61850ClientConfig }
+  | { protocolType: 'EMS_IO'; config: EmsIoConfig }
 );
 
 const NodeConfig = () => {
@@ -181,19 +188,21 @@ const NodeConfig = () => {
       'IEC104_SERVER': 'IEC104 服务端',
       'IEC104_CLIENT': 'IEC104 客户端',
       'IEC61850_SERVER': 'IEC61850 服务端',
-      'IEC61850_CLIENT': 'IEC61850 客户端'
+      'IEC61850_CLIENT': 'IEC61850 客户端',
+      'EMS_IO': 'EMS IO'
     };
     return displayNames[protocol];
   };
 
   // Check if protocol is input (client) or output (server)
   const isInputProtocol = (protocol: ProtocolType): boolean => {
-    // Input protocols: MODBUS clients, DLT645 protocols, and IEC104/IEC61850 clients
+    // Input protocols: MODBUS clients, DLT645 protocols, IEC104/IEC61850 clients, and EMS_IO
     return (
       protocol === 'MODBUS_TCP' || 
       protocol === 'MODBUS_RTU' || 
       protocol.startsWith('DLT645') || 
-      protocol.endsWith('_CLIENT')
+      protocol.endsWith('_CLIENT') ||
+      protocol === 'EMS_IO'
     );
   };
 
@@ -304,6 +313,8 @@ const NodeConfig = () => {
           reconnectInterval: 5000,
           autoReconnect: true
         };
+      case 'EMS_IO':
+        return {};
       default:
         return {};
     }
@@ -401,6 +412,15 @@ const NodeConfig = () => {
         enabled: true,
         status: 'OFFLINE',
         config: createDefaultConfig('IEC61850_CLIENT')
+      },
+      {
+        id: 'ems-io-1',
+        name: 'EMS IO',
+        protocolType: 'EMS_IO',
+        description: 'EMS输入输出点位',
+        enabled: true,
+        status: 'ONLINE',
+        config: createDefaultConfig('EMS_IO')
       }
     ];
     setNodes(defaultNodes);
@@ -1082,6 +1102,45 @@ const NodeConfig = () => {
         <div className="flex justify-end space-x-2 pt-4">
           <Button variant="outline" onClick={() => setIsAdding(false)}>取消</Button>
           <Button onClick={() => onSubmit(formData)} disabled={!formData.name || !formData.config.serialPort}>
+            添加节点
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // EMS IO Form - only name and description
+  const EmsIoForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
+    const [formData, setFormData] = useState({
+      name: '',
+      description: '',
+      config: createDefaultConfig('EMS_IO')
+    });
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>节点名称 *</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="输入节点名称"
+            />
+          </div>
+          <div>
+            <Label>描述</Label>
+            <Input
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="节点描述"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 pt-4">
+          <Button variant="outline" onClick={() => setIsAdding(false)}>取消</Button>
+          <Button onClick={() => onSubmit(formData)} disabled={!formData.name}>
             添加节点
           </Button>
         </div>
@@ -1975,6 +2034,8 @@ const NodeConfig = () => {
         return <Iec61850ServerForm onSubmit={addNode} />;
       case 'IEC61850_CLIENT':
         return <Iec61850ClientForm onSubmit={addNode} />;
+      case 'EMS_IO':
+        return <EmsIoForm onSubmit={addNode} />;
       default:
         return <ModbusTcpClientForm onSubmit={addNode} />;
     }
@@ -2043,6 +2104,7 @@ const NodeConfig = () => {
                       <SelectItem value="DLT645_TCP">DLT645 TCP</SelectItem>
                       <SelectItem value="IEC104_CLIENT">IEC104 客户端</SelectItem>
                       <SelectItem value="IEC61850_CLIENT">IEC61850 客户端</SelectItem>
+                      <SelectItem value="EMS_IO">EMS IO</SelectItem>
                     </>
                   ) : (
                     <>

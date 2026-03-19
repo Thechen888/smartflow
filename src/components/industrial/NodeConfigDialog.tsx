@@ -28,7 +28,8 @@ type ProtocolType =
   | 'IEC104_SERVER' 
   | 'IEC104_CLIENT' 
   | 'IEC61850_SERVER' 
-  | 'IEC61850_CLIENT';
+  | 'IEC61850_CLIENT'
+  | 'EMS_IO';
 
 interface BaseNode {
   id: string;
@@ -142,6 +143,11 @@ interface Iec61850ClientConfig {
   autoReconnect: boolean;
 }
 
+// EMS IO Config - empty config
+interface EmsIoConfig {
+  // No configuration needed
+}
+
 type CommunicationNode = BaseNode & (
   | { protocolType: 'MODBUS_TCP'; config: ModbusTcpClientConfig }
   | { protocolType: 'MODBUS_RTU'; config: ModbusRtuClientConfig }
@@ -153,6 +159,7 @@ type CommunicationNode = BaseNode & (
   | { protocolType: 'IEC104_CLIENT'; config: Iec104ClientConfig }
   | { protocolType: 'IEC61850_SERVER'; config: Iec61850ServerConfig }
   | { protocolType: 'IEC61850_CLIENT'; config: Iec61850ClientConfig }
+  | { protocolType: 'EMS_IO'; config: EmsIoConfig }
 );
 
 interface NodeConfigDialogProps {
@@ -441,6 +448,12 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
             onConfigChange={(config) => setEditedNode({ ...editedNode, config })}
           />
         );
+      case 'EMS_IO':
+        return (
+          <div className="text-sm text-gray-500 py-2">
+            EMS IO 协议无需额外配置
+          </div>
+        );
       default:
         return <div>未知协议配置</div>;
     }
@@ -575,6 +588,12 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
             <div><span className="font-medium">自动重连:</span> {(config as Iec61850ClientConfig).autoReconnect ? '是' : '否'}</div>
           </div>
         );
+      case 'EMS_IO':
+        return (
+          <div className="text-sm text-gray-500">
+            EMS IO 协议无需额外配置
+          </div>
+        );
       default:
         return <div>未知协议配置</div>;
     }
@@ -591,7 +610,8 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
       'IEC104_SERVER': 'IEC104 服务端',
       'IEC104_CLIENT': 'IEC104 客户端',
       'IEC61850_SERVER': 'IEC61850 服务端',
-      'IEC61850_CLIENT': 'IEC61850 客户端'
+      'IEC61850_CLIENT': 'IEC61850 客户端',
+      'EMS_IO': 'EMS IO'
     };
     return displayNames[protocol];
   };

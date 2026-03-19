@@ -9,7 +9,7 @@ import { Plus, Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
-// Updated ProtocolType definition to include MODBUS Server
+// Updated ProtocolType definition to include MODBUS Server and EMS IO
 type ProtocolType = 
   | 'MODBUS_TCP' 
   | 'MODBUS_RTU' 
@@ -20,7 +20,8 @@ type ProtocolType =
   | 'IEC104_SERVER' 
   | 'IEC104_CLIENT' 
   | 'IEC61850_SERVER' 
-  | 'IEC61850_CLIENT';
+  | 'IEC61850_CLIENT'
+  | 'EMS_IO';
 
 interface CommunicationNode {
   id: string;
@@ -71,7 +72,6 @@ interface ModbusControlPoint {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string;
 }
 
 interface Iec104InputPoint {
@@ -98,6 +98,23 @@ interface Iec104ControlPoint {
   description?: string;
 }
 
+// EMS IO Point interfaces
+interface EmsIoDiPoint {
+  id: string;
+  name: string;
+  address: string;
+  description?: string;
+  scanRate?: number;
+}
+
+interface EmsIoDoPoint {
+  id: string;
+  name: string;
+  address: string;
+  description?: string;
+  defaultValue?: boolean;
+}
+
 // Protocol display name mapping
 const getProtocolDisplayName = (protocol: ProtocolType): string => {
   const displayNames: Record<ProtocolType, string> = {
@@ -110,7 +127,8 @@ const getProtocolDisplayName = (protocol: ProtocolType): string => {
     'IEC104_SERVER': 'IEC104 服务端',
     'IEC104_CLIENT': 'IEC104 客户端',
     'IEC61850_SERVER': 'IEC61850 服务端',
-    'IEC61850_CLIENT': 'IEC61850 客户端'
+    'IEC61850_CLIENT': 'IEC61850 客户端',
+    'EMS_IO': 'EMS IO'
   };
   return displayNames[protocol];
 };
@@ -121,6 +139,7 @@ const getProtocolGroup = (protocol: ProtocolType): string => {
   if (protocol.startsWith('DLT645')) return 'DLT645';
   if (protocol.startsWith('IEC104')) return 'IEC104';
   if (protocol.startsWith('IEC61850')) return 'IEC61850';
+  if (protocol === 'EMS_IO') return 'EMS_IO';
   return 'OTHER';
 };
 
@@ -135,12 +154,380 @@ import ModbusTcpControlPointForm from './input-points/ModbusTcpControlPointForm'
 import ModbusRtuControlPointForm from './input-points/ModbusRtuControlPointForm';
 import Iec104ControlPointForm from './input-points/Iec104ControlPointForm';
 
+// EMS IO DI Point Form Component
+const EmsIoDiPointForm = ({ points, onPointsChange }: { points: EmsIoDiPoint[]; onPointsChange: (points: EmsIoDiPoint[]) => void }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingPoint, setEditingPoint] = useState<EmsIoDiPoint | null>(null);
+  const [newPoint, setNewPoint] = useState<Omit<EmsIoDiPoint, 'id'>>({
+    name: '',
+    address: '',
+    description: '',
+    scanRate: 1000
+  });
+
+  const addPoint = () => {
+    if (newPoint.name && newPoint.address) {
+      const point: EmsIoDiPoint = {
+        ...newPoint,
+        id: Date.now().toString()
+      };
+      onPointsChange([...points, point]);
+      setNewPoint({ name: '', address: '', description: '', scanRate: 1000 });
+      setIsAdding(false);
+    }
+  };
+
+  const updatePoint = () => {
+    if (editingPoint) {
+      onPointsChange(points.map(point => 
+        point.id === editingPoint.id ? editingPoint : point
+      ));
+      setEditingPoint(null);
+    }
+  };
+
+  const deletePoint = (id: string) => {
+    onPointsChange(points.filter(point => point.id !== id));
+  };
+
+  const startEditingPoint = (point: EmsIoDiPoint) => {
+    setEditingPoint({ ...point });
+    setIsAdding(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <CardTitle>EMS IO DI点位配置</CardTitle>
+        <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
+          <Plus className="mr-1 h-3 w-3" />
+          {isAdding ? '取消' : '添加DI点位'}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent>
+          {(isAdding || editingPoint) && (
+            <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">点位名称 *</Label>
+                  <Input
+                    placeholder="DI点位名称"
+                    value={editingPoint ? editingPoint.name : newPoint.name}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, name: e.target.value })
+                      : setNewPoint({ ...newPoint, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">地址 *</Label>
+                  <Input
+                    placeholder="点位地址"
+                    value={editingPoint ? editingPoint.address : newPoint.address}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, address: e.target.value })
+                      : setNewPoint({ ...newPoint, address: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">描述</Label>
+                  <Input
+                    placeholder="点位描述"
+                    value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, description: e.target.value })
+                      : setNewPoint({ ...newPoint, description: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">扫描频率(ms)</Label>
+                  <Input
+                    type="number"
+                    placeholder="1000"
+                    value={editingPoint ? (editingPoint.scanRate ?? 1000) : (newPoint.scanRate ?? 1000)}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, scanRate: parseInt(e.target.value) || 1000 })
+                      : setNewPoint({ ...newPoint, scanRate: parseInt(e.target.value) || 1000 })
+                    }
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setIsAdding(false);
+                  setEditingPoint(null);
+                }}>
+                  取消
+                </Button>
+                <Button size="sm" onClick={editingPoint ? updatePoint : addPoint} disabled={!editingPoint && (!newPoint.name || !newPoint.address)}>
+                  {editingPoint ? '更新' : '添加'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3 font-medium">名称</th>
+                  <th className="text-left py-2 px-3 font-medium">地址</th>
+                  <th className="text-left py-2 px-3 font-medium">描述</th>
+                  <th className="text-left py-2 px-3 font-medium">扫描频率(ms)</th>
+                  <th className="w-32 py-2 px-3 font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {points.map((point) => (
+                  <tr key={point.id} className="border-b hover:bg-gray-50">
+                    <td className="py-2 px-3 font-medium">{point.name}</td>
+                    <td className="py-2 px-3">{point.address}</td>
+                    <td className="py-2 px-3 text-sm">{point.description || '-'}</td>
+                    <td className="py-2 px-3">{point.scanRate || 1000}</td>
+                    <td className="py-2 px-3">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingPoint(point)}
+                          title="编辑"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                          </svg>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deletePoint(point.id)}
+                          title="删除"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-red-500">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                          </svg>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {points.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              暂无DI点位
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// EMS IO DO Point Form Component
+const EmsIoDoPointForm = ({ points, onPointsChange }: { points: EmsIoDoPoint[]; onPointsChange: (points: EmsIoDoPoint[]) => void }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingPoint, setEditingPoint] = useState<EmsIoDoPoint | null>(null);
+  const [newPoint, setNewPoint] = useState<Omit<EmsIoDoPoint, 'id'>>({
+    name: '',
+    address: '',
+    description: '',
+    defaultValue: false
+  });
+
+  const addPoint = () => {
+    if (newPoint.name && newPoint.address) {
+      const point: EmsIoDoPoint = {
+        ...newPoint,
+        id: Date.now().toString()
+      };
+      onPointsChange([...points, point]);
+      setNewPoint({ name: '', address: '', description: '', defaultValue: false });
+      setIsAdding(false);
+    }
+  };
+
+  const updatePoint = () => {
+    if (editingPoint) {
+      onPointsChange(points.map(point => 
+        point.id === editingPoint.id ? editingPoint : point
+      ));
+      setEditingPoint(null);
+    }
+  };
+
+  const deletePoint = (id: string) => {
+    onPointsChange(points.filter(point => point.id !== id));
+  };
+
+  const startEditingPoint = (point: EmsIoDoPoint) => {
+    setEditingPoint({ ...point });
+    setIsAdding(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <CardTitle>EMS IO DO点位配置</CardTitle>
+        <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
+          <Plus className="mr-1 h-3 w-3" />
+          {isAdding ? '取消' : '添加DO点位'}
+        </Button>
+      </div>
+
+      <Card>
+        <CardContent>
+          {(isAdding || editingPoint) && (
+            <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">点位名称 *</Label>
+                  <Input
+                    placeholder="DO点位名称"
+                    value={editingPoint ? editingPoint.name : newPoint.name}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, name: e.target.value })
+                      : setNewPoint({ ...newPoint, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">地址 *</Label>
+                  <Input
+                    placeholder="点位地址"
+                    value={editingPoint ? editingPoint.address : newPoint.address}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, address: e.target.value })
+                      : setNewPoint({ ...newPoint, address: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">描述</Label>
+                  <Input
+                    placeholder="点位描述"
+                    value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
+                    onChange={(e) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, description: e.target.value })
+                      : setNewPoint({ ...newPoint, description: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">默认值</Label>
+                  <Select
+                    value={editingPoint ? (editingPoint.defaultValue ? 'true' : 'false') : (newPoint.defaultValue ? 'true' : 'false')}
+                    onValueChange={(value) => editingPoint 
+                      ? setEditingPoint({ ...editingPoint, defaultValue: value === 'true' })
+                      : setNewPoint({ ...newPoint, defaultValue: value === 'true' })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="false">False</SelectItem>
+                      <SelectItem value="true">True</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => {
+                  setIsAdding(false);
+                  setEditingPoint(null);
+                }}>
+                  取消
+                </Button>
+                <Button size="sm" onClick={editingPoint ? updatePoint : addPoint} disabled={!editingPoint && (!newPoint.name || !newPoint.address)}>
+                  {editingPoint ? '更新' : '添加'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="border rounded-lg overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-3 font-medium">名称</th>
+                  <th className="text-left py-2 px-3 font-medium">地址</th>
+                  <th className="text-left py-2 px-3 font-medium">描述</th>
+                  <th className="text-left py-2 px-3 font-medium">默认值</th>
+                  <th className="w-32 py-2 px-3 font-medium">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {points.map((point) => (
+                  <tr key={point.id} className="border-b hover:bg-gray-50">
+                    <td className="py-2 px-3 font-medium">{point.name}</td>
+                    <td className="py-2 px-3">{point.address}</td>
+                    <td className="py-2 px-3 text-sm">{point.description || '-'}</td>
+                    <td className="py-2 px-3">{point.defaultValue ? 'True' : 'False'}</td>
+                    <td className="py-2 px-3">
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEditingPoint(point)}
+                          title="编辑"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500">
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                          </svg>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deletePoint(point.id)}
+                          title="删除"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-red-500">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                          </svg>
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {points.length === 0 && (
+            <div className="text-center py-4 text-gray-500">
+              暂无DO点位
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const InputPointConfig = () => {
   const [nodes, setNodes] = useState<CommunicationNode[]>([]);
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
   const [filterProtocol, setFilterProtocol] = useState<string>('ALL');
   const [filterName, setFilterName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'input' | 'control'>('input');
+  const [activeTab, setActiveTab] = useState<'input' | 'control' | 'di' | 'do'>('input');
   
   // MODBUS input config state
   const [modbusScanEntries, setModbusScanEntries] = useState<ModbusScanEntry[]>([
@@ -369,6 +756,41 @@ const InputPointConfig = () => {
   const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
   const [iec61850Config, setIec61850Config] = useState({ address: 'LD1/LLN0.MX.Vol', dataType: 'FLOAT32', scanRate: 1000 });
 
+  // EMS IO config states
+  const [emsIoDiPoints, setEmsIoDiPoints] = useState<EmsIoDiPoint[]>([
+    {
+      id: 'di-1',
+      name: '急停按钮',
+      address: 'DI001',
+      description: '紧急停止按钮状态',
+      scanRate: 100
+    },
+    {
+      id: 'di-2',
+      name: '门禁状态',
+      address: 'DI002',
+      description: '机房门禁开关状态',
+      scanRate: 500
+    }
+  ]);
+
+  const [emsIoDoPoints, setEmsIoDoPoints] = useState<EmsIoDoPoint[]>([
+    {
+      id: 'do-1',
+      name: '报警灯',
+      address: 'DO001',
+      description: '红色报警指示灯',
+      defaultValue: false
+    },
+    {
+      id: 'do-2',
+      name: '风机控制',
+      address: 'DO002',
+      description: '机房散热风机启停',
+      defaultValue: true
+    }
+  ]);
+
   // Get nodes from parent component or global state
   useEffect(() => {
     const defaultNodes: CommunicationNode[] = [
@@ -407,6 +829,12 @@ const InputPointConfig = () => {
         name: 'IEC61850 客户端',
         protocolType: 'IEC61850_CLIENT',
         description: '连接远程IED设备'
+      },
+      {
+        id: 'ems-io-1',
+        name: 'EMS IO',
+        protocolType: 'EMS_IO',
+        description: '能源管理系统IO点位'
       }
     ];
     setNodes(defaultNodes);
@@ -421,6 +849,21 @@ const InputPointConfig = () => {
     const matchesName = filterName === '' || node.name.toLowerCase().includes(filterName.toLowerCase());
     return matchesProtocol && matchesName;
   });
+
+  // Determine active tab based on selected node
+  useEffect(() => {
+    if (selectedNode?.protocolType === 'EMS_IO') {
+      // For EMS IO, default to DI tab if not already set to DI/DO
+      if (activeTab !== 'di' && activeTab !== 'do') {
+        setActiveTab('di');
+      }
+    } else {
+      // For other protocols, default to input tab if not already set to input/control
+      if (activeTab !== 'input' && activeTab !== 'control') {
+        setActiveTab('input');
+      }
+    }
+  }, [selectedNode, activeTab]);
 
   return (
     <div className="space-y-6">
@@ -448,6 +891,7 @@ const InputPointConfig = () => {
                   <SelectItem value="DLT645">DLT645</SelectItem>
                   <SelectItem value="IEC104">IEC104</SelectItem>
                   <SelectItem value="IEC61850">IEC61850</SelectItem>
+                  <SelectItem value="EMS_IO">EMS IO</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -499,6 +943,30 @@ const InputPointConfig = () => {
         <CardContent>
           {selectedNode && (
             <>
+              {/* EMS IO: show DI/DO tabs */}
+              {selectedNode.protocolType === 'EMS_IO' && (
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'di' | 'do')}>
+                  <TabsList>
+                    <TabsTrigger value="di">DI点位</TabsTrigger>
+                    <TabsTrigger value="do">DO点位</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="di">
+                    <EmsIoDiPointForm
+                      points={emsIoDiPoints}
+                      onPointsChange={setEmsIoDiPoints}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="do">
+                    <EmsIoDoPointForm
+                      points={emsIoDoPoints}
+                      onPointsChange={setEmsIoDoPoints}
+                    />
+                  </TabsContent>
+                </Tabs>
+              )}
+              
               {/* MODBUS TCP/RTU: show input and control tabs */}
               {(selectedNode.protocolType === 'MODBUS_TCP' || 
                 selectedNode.protocolType === 'MODBUS_RTU') && (
@@ -561,7 +1029,8 @@ const InputPointConfig = () => {
               {/* Other protocols: only show input form */}
               {(selectedNode.protocolType !== 'MODBUS_TCP' && 
                 selectedNode.protocolType !== 'MODBUS_RTU' &&
-                selectedNode.protocolType !== 'IEC104_CLIENT') && (
+                selectedNode.protocolType !== 'IEC104_CLIENT' &&
+                selectedNode.protocolType !== 'EMS_IO') && (
                 <>
                   {selectedNode.protocolType === 'DLT645_RTU' && (
                     <Dlt645RtuInputPointForm

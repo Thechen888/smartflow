@@ -97,27 +97,6 @@ interface Iec104ControlPoint {
   variableName?: string;
 }
 
-// IEC61850 output point interface
-interface Iec61850OutputPoint {
-  id: string;
-  address: string;
-  type: 'boolean' | 'int32' | 'float32' | 'timestamp' | 'check';
-  name: string;
-  dataType: 'BOOLEAN' | 'INT32' | 'FLOAT32' | 'TIMESTAMP';
-  controlType: 'DIRECT' | 'SELECT_BEFORE_OPERATE' | 'ENHANCED_DIRECT';
-  operationLevel: 'OPERATOR' | 'ENGINEER' | 'ADMIN';
-  min?: number;
-  max?: number;
-  defaultValue?: string;
-  description?: string;
-  sboTimeout?: number;
-  enhancedDirect?: boolean;
-  logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
-  boundInputProtocol?: string;
-  boundInputPoint?: string;
-  variableName?: string;
-}
-
 // Protocol display name mapping
 const getProtocolDisplayName = (protocol: ProtocolType): string => {
   const displayNames: Record<ProtocolType, string> = {
@@ -159,7 +138,7 @@ const OutputPointConfig = () => {
   const [selectedNode, setSelectedNode] = useState<CommunicationNode | null>(null);
   const [filterProtocol, setFilterProtocol] = useState<string>('ALL');
   const [filterName, setFilterName] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'output' | 'control'>('output');
+  const [activeTab, setActiveTab] = useState<'output' | 'control' | 'io'>('output');
 
   // MODBUS TCP Server output points
   const [modbusTcpRegisters, setModbusTcpRegisters] = useState<ModbusRegister[]>([
@@ -485,12 +464,13 @@ const OutputPointConfig = () => {
         <CardContent>
           {selectedNode && (
             <>
-              {/* MODBUS TCP Server: show output and control tabs */}
+              {/* MODBUS TCP Server: show output, control, and IO tabs */}
               {selectedNode.protocolType === 'MODBUS_TCP_SERVER' && (
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control')}>
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control' | 'io')}>
                   <TabsList>
                     <TabsTrigger value="output">输出点位</TabsTrigger>
                     <TabsTrigger value="control">控制点位</TabsTrigger>
+                    <TabsTrigger value="io">IO点位</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="output">
@@ -504,6 +484,13 @@ const OutputPointConfig = () => {
                     <ModbusTcpControlPointForm
                       points={modbusTcpControlPoints}
                       onPointsChange={setModbusTcpControlPoints}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="io">
+                    <ModbusTcpOutputPointForm
+                      registers={modbusTcpRegisters}
+                      onRegistersChange={setModbusTcpRegisters}
                     />
                   </TabsContent>
                 </Tabs>
@@ -533,12 +520,13 @@ const OutputPointConfig = () => {
                 </Tabs>
               )}
               
-              {/* IEC104 Server: show output and control tabs */}
+              {/* IEC104 Server: show output, control, and IO tabs */}
               {selectedNode.protocolType === 'IEC104_SERVER' && (
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control')}>
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control' | 'io')}>
                   <TabsList>
                     <TabsTrigger value="output">输出点位</TabsTrigger>
                     <TabsTrigger value="control">控制点位</TabsTrigger>
+                    <TabsTrigger value="io">IO点位</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="output">
@@ -552,6 +540,13 @@ const OutputPointConfig = () => {
                     <Iec104ControlPointForm
                       points={iec104ControlPoints}
                       onPointsChange={setIec104ControlPoints}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="io">
+                    <Iec104OutputPointForm
+                      points={iec104Points}
+                      onPointsChange={setIec104Points}
                     />
                   </TabsContent>
                 </Tabs>

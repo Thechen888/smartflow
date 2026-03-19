@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 // Updated ProtocolType definition to include MODBUS Server
 type ProtocolType = 
@@ -29,7 +30,7 @@ interface CommunicationNode {
   description?: string;
 }
 
-// Updated MODBUS output point interfaces to match input point structure
+// MODBUS output point interfaces to match input point structure
 interface ModbusRegister {
   id: string;
   slaveId: number;
@@ -116,6 +117,12 @@ interface Iec61850OutputPoint {
   boundInputProtocol?: string;
   boundInputPoint?: string;
   variableName?: string;
+}
+
+// DO点表绑定配置接口
+interface DoPointBinding {
+  logicType: 'BIND' | 'NO_BIND';
+  emsIoNodeId: string | null;
 }
 
 // Protocol display name mapping
@@ -359,6 +366,17 @@ const OutputPointConfig = () => {
     }
   ]);
 
+  // DO点表绑定状态
+  const [doPointBindings, setDoPointBindings] = useState<Record<string, DoPointBinding>>({
+    'modbus-tcp-server-1': { logicType: 'NO_BIND', emsIoNodeId: null },
+    'iec104-server-1': { logicType: 'NO_BIND', emsIoNodeId: null }
+  });
+
+  // 绑定窗口状态
+  const [bindingDialogOpen, setBindingDialogOpen] = useState(false);
+  const [selectedServerNodeId, setSelectedServerNodeId] = useState<string | null>(null);
+  const [bindingForm, setBindingForm] = useState<DoPointBinding>({ logicType: 'NO_BIND', emsIoNodeId: null });
+
   // Get nodes from parent component or global state
   useEffect(() => {
     const defaultNodes: CommunicationNode[] = [
@@ -385,6 +403,12 @@ const OutputPointConfig = () => {
         name: 'IEC61850 服务端',
         protocolType: 'IEC61850_SERVER',
         description: '变电站IED服务端'
+      },
+      {
+        id: 'ems-io-1',
+        name: 'EMS IO',
+        protocolType: 'EMS_IO',
+        description: '能源管理系统IO点位'
       }
     ];
     setNodes(defaultNodes);
@@ -399,6 +423,42 @@ const OutputPointConfig = () => {
     const matchesName = filterName === '' || node.name.toLowerCase().includes(filterName.toLowerCase());
     return matchesProtocol && matchesName;
   });
+
+  // 获取EMS IO节点列表
+  const getEmsIoNodes = () => {
+    return nodes.filter(node => node.protocolType === 'EMS_IO');
+  };
+
+  // 打开绑定窗口
+  const openBindingDialog = (serverNodeId: string) => {
+    setSelectedServerNodeId(serverNodeId);
+    const currentBinding = doPointBindings[serverNodeId] || { logicType: 'NO_BIND', emsIoNodeId: null };
+    setBindingForm(currentBinding);
+    setBindingDialogOpen(true);
+  };
+
+  // 保存绑定配置
+  const saveBinding = () => {
+    if (selectedServerNodeId) {
+      setDoPointBindings({
+        ...doPointBindings,
+        [selectedServerNodeId]: bindingForm
+      });
+      setBindingDialogOpen(false);
+      setSelectedServerNodeId(null);
+    }
+  };
+
+  // 获取绑定状态显示文本
+  const getBindingStatusText = (serverNodeId: string) => {
+    const binding = doPointBindings[serverNodeId];
+    if (!binding || binding.logicType === 'NO_BIND') {
+      return '未绑定';
+    }
+    
+    const emsIoNode = nodes.find(node => node.id === binding.emsIoNodeId);
+    return `已绑定 ${emsIoNode?.name || '未知节点'}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -494,6 +554,23 @@ const OutputPointConfig = () => {
                   </TabsList>
 
                   <TabsContent value="output">
+                    {/* DO点表绑定状态 */}
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">DO点表绑定:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{getBindingStatusText(selectedNode.id)}</span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => openBindingDialog(selectedNode.id)}
+                          >
+                            绑定
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <ModbusTcpOutputPointForm
                       registers={modbusTcpRegisters}
                       onRegistersChange={setModbusTcpRegisters}
@@ -542,6 +619,23 @@ const OutputPointConfig = () => {
                   </TabsList>
 
                   <TabsContent value="output">
+                    {/* DO点表绑定状态 */}
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">DO点表绑定:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{getBindingStatusText(selectedNode.id)}</span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => openBindingDialog(selectedNode.id)}
+                          >
+                            绑定
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <Iec104OutputPointForm
                       points={iec104Points}
                       onPointsChange={setIec104Points}
@@ -582,6 +676,64 @@ const OutputPointConfig = () => {
           暂无服务端节点，请先在节点配置中添加服务端节点
         </div>
       )}
+
+      {/* DO点表绑定配置对话框 */}
+      <Dialog open={bindingDialogOpen} onOpenChange={setBindingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>配置DO点表绑定</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>逻辑类型 *</Label>
+              <Select
+                value={bindingForm.logicType}
+                onValueChange={(value) => setBindingForm({ 
+                  ...bindingForm, 
+                  logicType: value as 'BIND' | 'NO_BIND',
+                  emsIoNodeId: value === 'NO_BIND' ? null : bindingForm.emsIoNodeId
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NO_BIND">不绑定</SelectItem>
+                  <SelectItem value="BIND">绑定</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {bindingForm.logicType === 'BIND' && (
+              <div>
+                <Label>EMS IO节点 *</Label>
+                <Select
+                  value={bindingForm.emsIoNodeId || ''}
+                  onValueChange={(value) => setBindingForm({ 
+                    ...bindingForm, 
+                    emsIoNodeId: value || null
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择EMS IO节点" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getEmsIoNodes().map(node => (
+                      <SelectItem key={node.id} value={node.id}>
+                        {node.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBindingDialogOpen(false)}>取消</Button>
+            <Button onClick={saveBinding}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

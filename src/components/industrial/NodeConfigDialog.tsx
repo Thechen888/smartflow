@@ -16,6 +16,7 @@ import Iec104ServerNodeForm from './nodes/Iec104ServerNodeForm';
 import Iec104ClientNodeForm from './nodes/Iec104ClientNodeForm';
 import Iec61850ServerNodeForm from './nodes/Iec61850ServerNodeForm';
 import Iec61850ClientNodeForm from './nodes/Iec61850ClientNodeForm';
+import EmsIoNodeForm from './nodes/EmsIoNodeForm';
 
 // Updated ProtocolType definition
 type ProtocolType = 
@@ -28,7 +29,8 @@ type ProtocolType =
   | 'IEC104_SERVER' 
   | 'IEC104_CLIENT' 
   | 'IEC61850_SERVER' 
-  | 'IEC61850_CLIENT';
+  | 'IEC61850_CLIENT'
+  | 'EMS_IO';
 
 interface BaseNode {
   id: string;
@@ -142,6 +144,14 @@ interface Iec61850ClientConfig {
   autoReconnect: boolean;
 }
 
+// EMS IO Config interface
+interface EmsIoConfig {
+  diStartAddress: string;
+  diCount: number;
+  doStartAddress: string;
+  doCount: number;
+}
+
 type CommunicationNode = BaseNode & (
   | { protocolType: 'MODBUS_TCP'; config: ModbusTcpClientConfig }
   | { protocolType: 'MODBUS_RTU'; config: ModbusRtuClientConfig }
@@ -153,6 +163,7 @@ type CommunicationNode = BaseNode & (
   | { protocolType: 'IEC104_CLIENT'; config: Iec104ClientConfig }
   | { protocolType: 'IEC61850_SERVER'; config: Iec61850ServerConfig }
   | { protocolType: 'IEC61850_CLIENT'; config: Iec61850ClientConfig }
+  | { protocolType: 'EMS_IO'; config: EmsIoConfig }
 );
 
 interface NodeConfigDialogProps {
@@ -441,6 +452,13 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
             onConfigChange={(config) => setEditedNode({ ...editedNode, config })}
           />
         );
+      case 'EMS_IO':
+        return (
+          <EmsIoNodeForm
+            config={editedNode.config}
+            onConfigChange={(config) => setEditedNode({ ...editedNode, config })}
+          />
+        );
       default:
         return <div>未知协议配置</div>;
     }
@@ -575,6 +593,15 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
             <div><span className="font-medium">自动重连:</span> {(config as Iec61850ClientConfig).autoReconnect ? '是' : '否'}</div>
           </div>
         );
+      case 'EMS_IO':
+        return (
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div><span className="font-medium">DI起始地址:</span> {(config as EmsIoConfig).diStartAddress}</div>
+            <div><span className="font-medium">计数（DI）:</span> {(config as EmsIoConfig).diCount}</div>
+            <div><span className="font-medium">DO起始地址:</span> {(config as EmsIoConfig).doStartAddress}</div>
+            <div><span className="font-medium">计数（DO）:</span> {(config as EmsIoConfig).doCount}</div>
+          </div>
+        );
       default:
         return <div>未知协议配置</div>;
     }
@@ -591,7 +618,8 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
       'IEC104_SERVER': 'IEC104 服务端',
       'IEC104_CLIENT': 'IEC104 客户端',
       'IEC61850_SERVER': 'IEC61850 服务端',
-      'IEC61850_CLIENT': 'IEC61850 客户端'
+      'IEC61850_CLIENT': 'IEC61850 客户端',
+      'EMS_IO': 'EMS IO'
     };
     return displayNames[protocol];
   };

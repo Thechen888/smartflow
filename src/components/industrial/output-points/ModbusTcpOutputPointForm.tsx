@@ -68,6 +68,15 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     boundInputPoint: 'voltage'
   });
 
+  // IO点位绑定配置状态
+  const [ioBindingDialogOpen, setIoBindingDialogOpen] = useState(false);
+  const [selectedRegisterForIoBinding, setSelectedRegisterForIoBinding] = useState<ModbusRegister | null>(null);
+  const [ioBindingForm, setIoBindingForm] = useState({
+    emsIoDevice: 'EMS IO',
+    pointType: 'DI' as 'DI' | 'DO',
+    point: '!water'
+  });
+
   // 寄存器表操作
   const addRegister = () => {
     if (newRegister.name) {
@@ -119,7 +128,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     ));
   };
 
-  // 配置对话框处理
+  // 配置对话框处理（用于输出点位逻辑）
   const openConfigDialog = (register: ModbusRegister) => {
     setSelectedRegisterForConfig(register);
     setConfigForm({
@@ -143,6 +152,26 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
       ));
       setConfigDialogOpen(false);
       setSelectedRegisterForConfig(null);
+    }
+  };
+
+  // IO点位绑定对话框处理
+  const openIoBindingDialog = (register: ModbusRegister) => {
+    setSelectedRegisterForIoBinding(register);
+    setIoBindingForm({
+      emsIoDevice: 'EMS IO',
+      pointType: 'DI',
+      point: '!water'
+    });
+    setIoBindingDialogOpen(true);
+  };
+
+  const saveIoBinding = () => {
+    if (selectedRegisterForIoBinding) {
+      // 这里可以保存IO绑定配置到register对象中
+      // 例如：selectedRegisterForIoBinding.ioBinding = ioBindingForm;
+      setIoBindingDialogOpen(false);
+      setSelectedRegisterForIoBinding(null);
     }
   };
 
@@ -547,6 +576,14 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => openIoBindingDialog(register)}
+                        title="绑定IO点位"
+                      >
+                        <Settings2 className="h-4 w-4 text-green-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => deleteRegister(register.id)}
                         title="删除寄存器"
                       >
@@ -567,7 +604,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* 配置对话框 */}
+      {/* 配置对话框（输出点位逻辑） */}
       <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -643,6 +680,67 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
             <Button onClick={saveConfig}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* IO点位绑定对话框 */}
+      <Dialog open={ioBindingDialogOpen} onOpenChange={setIoBindingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>绑定IO点位</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>EMS IO类型设备 *</Label>
+              <Select
+                value={ioBindingForm.emsIoDevice}
+                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, emsIoDevice: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EMS IO">EMS IO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>点位类型 *</Label>
+              <Select
+                value={ioBindingForm.pointType}
+                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, pointType: value as 'DI' | 'DO' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DI">DI</SelectItem>
+                  <SelectItem value="DO">DO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>点位 *</Label>
+              <Select
+                value={ioBindingForm.point}
+                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, point: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="!water">!water</SelectItem>
+                  <SelectItem value="!door">!door</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIoBindingDialogOpen(false)}>取消</Button>
+            <Button onClick={saveIoBinding}>保存绑定</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

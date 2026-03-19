@@ -30,11 +30,14 @@ interface Iec104OutputPoint {
 interface Iec104OutputPointFormProps {
   points: Iec104OutputPoint[];
   onPointsChange: (points: Iec104OutputPoint[]) => void;
+  // 新增isIoTab属性来区分是输出点位还是IO点位
+  isIoTab?: boolean;
 }
 
 const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   points,
-  onPointsChange
+  onPointsChange,
+  isIoTab = false
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingPoint, setEditingPoint] = useState<Iec104OutputPoint | null>(null);
@@ -58,7 +61,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     boundInputPoint: 'voltage'
   });
 
-  // IO点位绑定配置状态
   const [ioBindingDialogOpen, setIoBindingDialogOpen] = useState(false);
   const [selectedPointForIoBinding, setSelectedPointForIoBinding] = useState<Iec104OutputPoint | null>(null);
   const [ioBindingForm, setIoBindingForm] = useState({
@@ -107,7 +109,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     setIsAdding(false);
   };
 
-  // 配置对话框处理（用于输出点位逻辑）
   const openConfigDialog = (point: Iec104OutputPoint) => {
     setSelectedPointForConfig(point);
     setConfigForm({
@@ -134,7 +135,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     }
   };
 
-  // IO点位绑定对话框处理
   const openIoBindingDialog = (point: Iec104OutputPoint) => {
     setSelectedPointForIoBinding(point);
     setIoBindingForm({
@@ -147,8 +147,6 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
 
   const saveIoBinding = () => {
     if (selectedPointForIoBinding) {
-      // 这里可以保存IO绑定配置到point对象中
-      // 例如：selectedPointForIoBinding.ioBinding = ioBindingForm;
       setIoBindingDialogOpen(false);
       setSelectedPointForIoBinding(null);
     }
@@ -223,7 +221,9 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <CardTitle>IEC104 输出点位配置</CardTitle>
+        <CardTitle>
+          {isIoTab ? 'IEC104 IO点位配置' : 'IEC104 输出点位配置'}
+        </CardTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
             <label className="cursor-pointer flex items-center">
@@ -401,8 +401,8 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                   <TableHead>偏移量</TableHead>
                   <TableHead>变量名称</TableHead>
                   <TableHead>描述</TableHead>
-                  <TableHead>逻辑类型</TableHead>
-                  <TableHead>绑定输入点位</TableHead>
+                  {!isIoTab && <TableHead>逻辑类型</TableHead>}
+                  {!isIoTab && <TableHead>绑定输入点位</TableHead>}
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -422,14 +422,18 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                     <TableCell>{point.offset ?? '-'}</TableCell>
                     <TableCell className="text-xs">{point.variableName || '-'}</TableCell>
                     <TableCell className="text-xs">{point.description || '-'}</TableCell>
-                    <TableCell className="text-xs">
-                      {getLogicTypeLabel(point.logicType)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {point.logicType === 'BIND_INPUT' ? 
-                        `${point.boundInputProtocol || 'IEC104 客户端'} - ${point.boundInputPoint || 'voltage'}` : 
-                        '-'}
-                    </TableCell>
+                    {!isIoTab && (
+                      <TableCell className="text-xs">
+                        {getLogicTypeLabel(point.logicType)}
+                      </TableCell>
+                    )}
+                    {!isIoTab && (
+                      <TableCell className="text-xs">
+                        {point.logicType === 'BIND_INPUT' ? 
+                          `${point.boundInputProtocol || 'IEC104 客户端'} - ${point.boundInputPoint || 'voltage'}` : 
+                          '-'}
+                      </TableCell>
+                    )}
                     <TableCell className="flex gap-1">
                       <Button
                         variant="ghost"
@@ -439,22 +443,25 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                       >
                         <Pencil className="h-4 w-4 text-blue-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openConfigDialog(point)}
-                        title="配置逻辑"
-                      >
-                        <Settings2 className="h-4 w-4 text-purple-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openIoBindingDialog(point)}
-                        title="绑定IO点位"
-                      >
-                        <Settings2 className="h-4 w-4 text-green-500" />
-                      </Button>
+                      {!isIoTab ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openConfigDialog(point)}
+                          title="配置逻辑"
+                        >
+                          <Settings2 className="h-4 w-4 text-purple-500" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openIoBindingDialog(point)}
+                          title="绑定IO点位"
+                        >
+                          <Settings2 className="h-4 w-4 text-green-500" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -472,152 +479,156 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
 
           {points.length === 0 && (
             <div className="text-center py-4 text-gray-500">
-              暂无IEC104输出点位
+              暂无{isIoTab ? 'IO' : '输出'}点位配置
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 配置对话框（输出点位逻辑） */}
-      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>配置输出点位逻辑</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>逻辑类型 *</Label>
-              <Select
-                value={configForm.logicType}
-                onValueChange={(value) => setConfigForm({ 
-                  ...configForm, 
-                  logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
-                  boundInputProtocol: value === 'BIND_INPUT' ? (configForm.boundInputProtocol || 'IEC104 客户端') : undefined,
-                  boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'voltage') : undefined
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BIND_INPUT">绑定输入点位</SelectItem>
-                  <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* 配置对话框（仅在输出点位Tab显示） */}
+      {!isIoTab && (
+        <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>配置输出点位逻辑</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>逻辑类型 *</Label>
+                <Select
+                  value={configForm.logicType}
+                  onValueChange={(value) => setConfigForm({ 
+                    ...configForm, 
+                    logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
+                    boundInputProtocol: value === 'BIND_INPUT' ? (configForm.boundInputProtocol || 'IEC104 客户端') : undefined,
+                    boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'voltage') : undefined
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BIND_INPUT">绑定输入点位</SelectItem>
+                    <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {configForm.logicType === 'BIND_INPUT' && (
+                <>
+                  <div>
+                    <Label>输入协议类型 *</Label>
+                    <Select
+                      value={configForm.boundInputProtocol}
+                      onValueChange={(value) => setConfigForm({ 
+                        ...configForm, 
+                        boundInputProtocol: value,
+                        boundInputPoint: 'voltage'
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {protocolOptions.map(protocol => (
+                          <SelectItem key={protocol} value={protocol}>
+                            {protocol}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>输入点位选择 *</Label>
+                    <Select
+                      value={configForm.boundInputPoint}
+                      onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pointOptions.map(point => (
+                          <SelectItem key={point.value} value={point.value}>
+                            {point.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
             </div>
-            
-            {configForm.logicType === 'BIND_INPUT' && (
-              <>
-                <div>
-                  <Label>输入协议类型 *</Label>
-                  <Select
-                    value={configForm.boundInputProtocol}
-                    onValueChange={(value) => setConfigForm({ 
-                      ...configForm, 
-                      boundInputProtocol: value,
-                      boundInputPoint: 'voltage'
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {protocolOptions.map(protocol => (
-                        <SelectItem key={protocol} value={protocol}>
-                          {protocol}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>输入点位选择 *</Label>
-                  <Select
-                    value={configForm.boundInputPoint}
-                    onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pointOptions.map(point => (
-                        <SelectItem key={point.value} value={point.value}>
-                          {point.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
-            <Button onClick={saveConfig}>保存配置</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
+              <Button onClick={saveConfig}>保存配置</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* IO点位绑定对话框 */}
-      <Dialog open={ioBindingDialogOpen} onOpenChange={setIoBindingDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>绑定IO点位</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>EMS IO类型设备 *</Label>
-              <Select
-                value={ioBindingForm.emsIoDevice}
-                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, emsIoDevice: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EMS IO">EMS IO</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* IO点位绑定对话框（仅在IO点位Tab显示） */}
+      {isIoTab && (
+        <Dialog open={ioBindingDialogOpen} onOpenChange={setIoBindingDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>绑定IO点位</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>EMS IO类型设备 *</Label>
+                <Select
+                  value={ioBindingForm.emsIoDevice}
+                  onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, emsIoDevice: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EMS IO">EMS IO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>点位类型 *</Label>
+                <Select
+                  value={ioBindingForm.pointType}
+                  onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, pointType: value as 'DI' | 'DO' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DI">DI</SelectItem>
+                    <SelectItem value="DO">DO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>点位 *</Label>
+                <Select
+                  value={ioBindingForm.point}
+                  onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, point: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="!water">!water</SelectItem>
+                    <SelectItem value="!door">!door</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            
-            <div>
-              <Label>点位类型 *</Label>
-              <Select
-                value={ioBindingForm.pointType}
-                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, pointType: value as 'DI' | 'DO' })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DI">DI</SelectItem>
-                  <SelectItem value="DO">DO</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label>点位 *</Label>
-              <Select
-                value={ioBindingForm.point}
-                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, point: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="!water">!water</SelectItem>
-                  <SelectItem value="!door">!door</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIoBindingDialogOpen(false)}>取消</Button>
-            <Button onClick={saveIoBinding}>保存绑定</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIoBindingDialogOpen(false)}>取消</Button>
+              <Button onClick={saveIoBinding}>保存绑定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

@@ -477,6 +477,7 @@ const OutputPointConfig = () => {
                     <ModbusTcpOutputPointForm
                       registers={modbusTcpRegisters}
                       onRegistersChange={setModbusTcpRegisters}
+                      isIoTab={false}
                     />
                   </TabsContent>
 
@@ -491,6 +492,7 @@ const OutputPointConfig = () => {
                     <ModbusTcpOutputPointForm
                       registers={modbusTcpRegisters}
                       onRegistersChange={setModbusTcpRegisters}
+                      isIoTab={true}
                     />
                   </TabsContent>
                 </Tabs>
@@ -533,6 +535,7 @@ const OutputPointConfig = () => {
                     <Iec104OutputPointForm
                       points={iec104Points}
                       onPointsChange={setIec104Points}
+                      isIoTab={false}
                     />
                   </TabsContent>
 
@@ -547,6 +550,7 @@ const OutputPointConfig = () => {
                     <Iec104OutputPointForm
                       points={iec104Points}
                       onPointsChange={setIec104Points}
+                      isIoTab={true}
                     />
                   </TabsContent>
                 </Tabs>

@@ -29,19 +29,21 @@ interface ModbusRegister {
   logicType?: 'BIND_INPUT' | 'SCRIPT_ONLY';
   boundInputProtocol?: string;
   boundInputPoint?: string;
-  variableName?: string; // 新增变量名称字段
+  variableName?: string;
 }
 
 interface ModbusTcpOutputPointFormProps {
   registers: ModbusRegister[];
   onRegistersChange: (registers: ModbusRegister[]) => void;
+  // 新增isIoTab属性来区分是输出点位还是IO点位
+  isIoTab?: boolean;
 }
 
 const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
   registers,
-  onRegistersChange
+  onRegistersChange,
+  isIoTab = false
 }) => {
-  // 寄存器表状态
   const [isAddingRegister, setIsAddingRegister] = useState(false);
   const [editingRegister, setEditingRegister] = useState<ModbusRegister | null>(null);
   const [newRegister, setNewRegister] = useState<Omit<ModbusRegister, 'id'>>({
@@ -57,7 +59,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     a: 1,
     b: 0,
     hint: '',
-    variableName: '' // 初始化变量名称字段
+    variableName: ''
   });
 
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
@@ -68,7 +70,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     boundInputPoint: 'voltage'
   });
 
-  // IO点位绑定配置状态
   const [ioBindingDialogOpen, setIoBindingDialogOpen] = useState(false);
   const [selectedRegisterForIoBinding, setSelectedRegisterForIoBinding] = useState<ModbusRegister | null>(null);
   const [ioBindingForm, setIoBindingForm] = useState({
@@ -77,7 +78,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     point: '!water'
   });
 
-  // 寄存器表操作
   const addRegister = () => {
     if (newRegister.name) {
       const register: ModbusRegister = {
@@ -98,7 +98,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
         a: 1,
         b: 0,
         hint: '',
-        variableName: '' // 重置变量名称字段
+        variableName: ''
       });
       setIsAddingRegister(false);
     }
@@ -128,7 +128,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     ));
   };
 
-  // 配置对话框处理（用于输出点位逻辑）
   const openConfigDialog = (register: ModbusRegister) => {
     setSelectedRegisterForConfig(register);
     setConfigForm({
@@ -155,7 +154,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     }
   };
 
-  // IO点位绑定对话框处理
   const openIoBindingDialog = (register: ModbusRegister) => {
     setSelectedRegisterForIoBinding(register);
     setIoBindingForm({
@@ -168,14 +166,11 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
 
   const saveIoBinding = () => {
     if (selectedRegisterForIoBinding) {
-      // 这里可以保存IO绑定配置到register对象中
-      // 例如：selectedRegisterForIoBinding.ioBinding = ioBindingForm;
       setIoBindingDialogOpen(false);
       setSelectedRegisterForIoBinding(null);
     }
   };
 
-  // 获取类型示例
   const getTypeExample = (type: string): string => {
     const examples: Record<string, string> = {
       'uint16': '0-65535 (无符号16位整数)',
@@ -188,11 +183,8 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     return examples[type] || '';
   };
 
-  // 导出配置
   const exportConfig = () => {
-    const config = {
-      registers
-    };
+    const config = { registers };
     const dataStr = JSON.stringify(config, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -204,7 +196,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     toast.success('MODBUS TCP输出配置已导出');
   };
 
-  // 导入配置
   const importConfig = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -224,12 +215,9 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
       }
     };
     reader.readAsText(file);
-    // 重置input值，以便可以重复导入同一个文件
     event.target.value = '';
   };
 
-  // 线性变换公式说明：y = (x - b) / a，其中 y 是寄存器中的值，x 是实际工程值
-  // 所以 x = a * y + b，其中 min/max 是 x 的范围（实际值范围）
   const getLinearFormula = (a: number, b: number) => {
     return `实际值 = ${a} × 寄存器值 + ${b}`;
   };
@@ -239,7 +227,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     return type === 'BIND_INPUT' ? '绑定输入点位' : '纯脚本';
   };
 
-  // 协议选项
   const protocolOptions = [
     'MODBUS TCP 客户端',
     'MODBUS RTU 客户端', 
@@ -249,7 +236,6 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
     'DLT645 TCP 电表'
   ];
 
-  // 点位选项（所有协议都相同） - Updated to show only 'voltage' and 'current'
   const pointOptions = [
     { value: 'voltage', label: 'voltage' },
     { value: 'current', label: 'current' }
@@ -258,7 +244,9 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <CardTitle>MODBUS 寄存器表配置</CardTitle>
+        <CardTitle>
+          {isIoTab ? 'MODBUS IO点位配置' : 'MODBUS 输出点位配置'}
+        </CardTitle>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" asChild>
             <label className="cursor-pointer flex items-center">
@@ -516,8 +504,8 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                   <TableHead>变量名称</TableHead>
                   <TableHead>实际值范围</TableHead>
                   <TableHead>线性变换</TableHead>
-                  <TableHead>逻辑类型</TableHead>
-                  <TableHead>绑定输入点位</TableHead>
+                  {!isIoTab && <TableHead>逻辑类型</TableHead>}
+                  {!isIoTab && <TableHead>绑定输入点位</TableHead>}
                   <TableHead>提示</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -547,14 +535,18 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                     <TableCell className="text-xs">
                       {getLinearFormula(register.a || 1, register.b || 0)}
                     </TableCell>
-                    <TableCell className="text-xs">
-                      {getLogicTypeLabel(register.logicType)}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {register.logicType === 'BIND_INPUT' ? 
-                        `${register.boundInputProtocol || 'MODBUS TCP 客户端'} - ${register.boundInputPoint || 'voltage'}` : 
-                        '-'}
-                    </TableCell>
+                    {!isIoTab && (
+                      <TableCell className="text-xs">
+                        {getLogicTypeLabel(register.logicType)}
+                      </TableCell>
+                    )}
+                    {!isIoTab && (
+                      <TableCell className="text-xs">
+                        {register.logicType === 'BIND_INPUT' ? 
+                          `${register.boundInputProtocol || 'MODBUS TCP 客户端'} - ${register.boundInputPoint || 'voltage'}` : 
+                          '-'}
+                      </TableCell>
+                    )}
                     <TableCell className="text-xs">{register.hint || '-'}</TableCell>
                     <TableCell className="flex gap-1">
                       <Button
@@ -565,22 +557,25 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                       >
                         <Pencil className="h-4 w-4 text-blue-500" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openConfigDialog(register)}
-                        title="配置逻辑"
-                      >
-                        <Settings2 className="h-4 w-4 text-purple-500" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openIoBindingDialog(register)}
-                        title="绑定IO点位"
-                      >
-                        <Settings2 className="h-4 w-4 text-green-500" />
-                      </Button>
+                      {!isIoTab ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openConfigDialog(register)}
+                          title="配置逻辑"
+                        >
+                          <Settings2 className="h-4 w-4 text-purple-500" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openIoBindingDialog(register)}
+                          title="绑定IO点位"
+                        >
+                          <Settings2 className="h-4 w-4 text-green-500" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -598,152 +593,156 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
 
           {registers.length === 0 && (
             <div className="text-center py-4 text-gray-500">
-              暂无寄存器配置
+              暂无{isIoTab ? 'IO' : '输出'}点位配置
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 配置对话框（输出点位逻辑） */}
-      <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>配置输出点位逻辑</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>逻辑类型 *</Label>
-              <Select
-                value={configForm.logicType}
-                onValueChange={(value) => setConfigForm({ 
-                  ...configForm, 
-                  logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
-                  boundInputProtocol: value === 'BIND_INPUT' ? (configForm.boundInputProtocol || 'MODBUS TCP 客户端') : undefined,
-                  boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'voltage') : undefined
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BIND_INPUT">绑定输入点位</SelectItem>
-                  <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* 配置对话框（仅在输出点位Tab显示） */}
+      {!isIoTab && (
+        <Dialog open={configDialogOpen} onOpenChange={setConfigDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>配置输出点位逻辑</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>逻辑类型 *</Label>
+                <Select
+                  value={configForm.logicType}
+                  onValueChange={(value) => setConfigForm({ 
+                    ...configForm, 
+                    logicType: value as 'BIND_INPUT' | 'SCRIPT_ONLY',
+                    boundInputProtocol: value === 'BIND_INPUT' ? (configForm.boundInputProtocol || 'MODBUS TCP 客户端') : undefined,
+                    boundInputPoint: value === 'BIND_INPUT' ? (configForm.boundInputPoint || 'voltage') : undefined
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BIND_INPUT">绑定输入点位</SelectItem>
+                    <SelectItem value="SCRIPT_ONLY">纯脚本</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {configForm.logicType === 'BIND_INPUT' && (
+                <>
+                  <div>
+                    <Label>输入协议类型 *</Label>
+                    <Select
+                      value={configForm.boundInputProtocol}
+                      onValueChange={(value) => setConfigForm({ 
+                        ...configForm, 
+                        boundInputProtocol: value,
+                        boundInputPoint: 'voltage'
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {protocolOptions.map(protocol => (
+                          <SelectItem key={protocol} value={protocol}>
+                            {protocol}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>输入点位选择 *</Label>
+                    <Select
+                      value={configForm.boundInputPoint}
+                      onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pointOptions.map(point => (
+                          <SelectItem key={point.value} value={point.value}>
+                            {point.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
             </div>
-            
-            {configForm.logicType === 'BIND_INPUT' && (
-              <>
-                <div>
-                  <Label>输入协议类型 *</Label>
-                  <Select
-                    value={configForm.boundInputProtocol}
-                    onValueChange={(value) => setConfigForm({ 
-                      ...configForm, 
-                      boundInputProtocol: value,
-                      boundInputPoint: 'voltage'
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {protocolOptions.map(protocol => (
-                        <SelectItem key={protocol} value={protocol}>
-                          {protocol}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>输入点位选择 *</Label>
-                  <Select
-                    value={configForm.boundInputPoint}
-                    onValueChange={(value) => setConfigForm({ ...configForm, boundInputPoint: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {pointOptions.map(point => (
-                        <SelectItem key={point.value} value={point.value}>
-                          {point.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
-            <Button onClick={saveConfig}>保存配置</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
+              <Button onClick={saveConfig}>保存配置</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {/* IO点位绑定对话框 */}
-      <Dialog open={ioBindingDialogOpen} onOpenChange={setIoBindingDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>绑定IO点位</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>EMS IO类型设备 *</Label>
-              <Select
-                value={ioBindingForm.emsIoDevice}
-                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, emsIoDevice: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EMS IO">EMS IO</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* IO点位绑定对话框（仅在IO点位Tab显示） */}
+      {isIoTab && (
+        <Dialog open={ioBindingDialogOpen} onOpenChange={setIoBindingDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>绑定IO点位</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>EMS IO类型设备 *</Label>
+                <Select
+                  value={ioBindingForm.emsIoDevice}
+                  onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, emsIoDevice: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EMS IO">EMS IO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>点位类型 *</Label>
+                <Select
+                  value={ioBindingForm.pointType}
+                  onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, pointType: value as 'DI' | 'DO' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DI">DI</SelectItem>
+                    <SelectItem value="DO">DO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>点位 *</Label>
+                <Select
+                  value={ioBindingForm.point}
+                  onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, point: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="!water">!water</SelectItem>
+                    <SelectItem value="!door">!door</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            
-            <div>
-              <Label>点位类型 *</Label>
-              <Select
-                value={ioBindingForm.pointType}
-                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, pointType: value as 'DI' | 'DO' })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DI">DI</SelectItem>
-                  <SelectItem value="DO">DO</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label>点位 *</Label>
-              <Select
-                value={ioBindingForm.point}
-                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, point: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="!water">!water</SelectItem>
-                  <SelectItem value="!door">!door</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIoBindingDialogOpen(false)}>取消</Button>
-            <Button onClick={saveIoBinding}>保存绑定</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIoBindingDialogOpen(false)}>取消</Button>
+              <Button onClick={saveIoBinding}>保存绑定</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

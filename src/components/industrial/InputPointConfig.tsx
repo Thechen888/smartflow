@@ -858,34 +858,6 @@ const InputPointConfig = () => {
                 </Tabs>
               )}
               
-              {/* EMS IO: show DI and DO tabs */}
-              {selectedNode.protocolType === 'EMS_IO' && (
-                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'di' | 'do')}>
-                  <TabsList>
-                    <TabsTrigger value="di">DI点位</TabsTrigger>
-                    <TabsTrigger value="do">DO点位</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="di">
-                    <EmsIoPointForm
-                      points={emsIoDiPoints}
-                      pointType="DI"
-                      onPointsChange={setEmsIoDiPoints}
-                      hideActions={true}
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="do">
-                    <EmsIoPointForm
-                      points={emsIoDoPoints}
-                      pointType="DO"
-                      onPointsChange={setEmsIoDoPoints}
-                      hideActions={true}
-                    />
-                  </TabsContent>
-                </Tabs>
-              )}
-              
               {/* Other protocols: only show input form */}
               {(selectedNode.protocolType !== 'MODBUS_TCP' && 
                 selectedNode.protocolType !== 'MODBUS_RTU' &&

@@ -74,7 +74,7 @@ const EmsIoPointForm: React.FC<EmsIoPointFormProps> = ({
                   <TableHead>路径</TableHead>
                   <TableHead>初始值</TableHead>
                   <TableHead>备注</TableHead>
-                  {!hideActions && <TableHead>操作</TableHead>}
+                  <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -114,33 +114,19 @@ const EmsIoPointForm: React.FC<EmsIoPointFormProps> = ({
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">{point.description || '-'}</span>
-                          {!hideActions && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => startEditing(point)}
-                              className="h-6 w-6 p-0"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
+                        <span className="text-sm">{point.description || '-'}</span>
                       )}
                     </TableCell>
-                    {!hideActions && (
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEditing(point)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                      </TableCell>
-                    )}
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditing(point)}
+                        className="h-6 w-6 p-0"
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

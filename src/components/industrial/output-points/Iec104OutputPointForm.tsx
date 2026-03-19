@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Download, Upload, Pencil } from 'lucide-react';
+import { Plus, Trash2, Download, Upload, Pencil, Settings2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from "sonner";
@@ -56,6 +56,15 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
     logicType: 'BIND_INPUT' as 'BIND_INPUT' | 'SCRIPT_ONLY',
     boundInputProtocol: 'IEC104 客户端',
     boundInputPoint: 'voltage'
+  });
+
+  // IO点位绑定配置状态
+  const [ioBindingDialogOpen, setIoBindingDialogOpen] = useState(false);
+  const [selectedPointForIoBinding, setSelectedPointForIoBinding] = useState<Iec104OutputPoint | null>(null);
+  const [ioBindingForm, setIoBindingForm] = useState({
+    emsIoDevice: 'EMS IO',
+    pointType: 'DI' as 'DI' | 'DO',
+    point: '!water'
   });
 
   const addPoint = () => {
@@ -122,6 +131,26 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
       ));
       setConfigDialogOpen(false);
       setSelectedPointForConfig(null);
+    }
+  };
+
+  // IO点位绑定对话框处理
+  const openIoBindingDialog = (point: Iec104OutputPoint) => {
+    setSelectedPointForIoBinding(point);
+    setIoBindingForm({
+      emsIoDevice: 'EMS IO',
+      pointType: 'DI',
+      point: '!water'
+    });
+    setIoBindingDialogOpen(true);
+  };
+
+  const saveIoBinding = () => {
+    if (selectedPointForIoBinding) {
+      // 这里可以保存IO绑定配置到point对象中
+      // 例如：selectedPointForIoBinding.ioBinding = ioBindingForm;
+      setIoBindingDialogOpen(false);
+      setSelectedPointForIoBinding(null);
     }
   };
 
@@ -416,7 +445,15 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                         onClick={() => openConfigDialog(point)}
                         title="配置逻辑"
                       >
-                        <Pencil className="h-4 w-4 text-purple-500" />
+                        <Settings2 className="h-4 w-4 text-purple-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openIoBindingDialog(point)}
+                        title="绑定IO点位"
+                      >
+                        <Settings2 className="h-4 w-4 text-green-500" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -517,6 +554,67 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfigDialogOpen(false)}>取消</Button>
             <Button onClick={saveConfig}>保存配置</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* IO点位绑定对话框 */}
+      <Dialog open={ioBindingDialogOpen} onOpenChange={setIoBindingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>绑定IO点位</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>EMS IO类型设备 *</Label>
+              <Select
+                value={ioBindingForm.emsIoDevice}
+                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, emsIoDevice: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EMS IO">EMS IO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>点位类型 *</Label>
+              <Select
+                value={ioBindingForm.pointType}
+                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, pointType: value as 'DI' | 'DO' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DI">DI</SelectItem>
+                  <SelectItem value="DO">DO</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>点位 *</Label>
+              <Select
+                value={ioBindingForm.point}
+                onValueChange={(value) => setIoBindingForm({ ...ioBindingForm, point: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="!water">!water</SelectItem>
+                  <SelectItem value="!door">!door</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIoBindingDialogOpen(false)}>取消</Button>
+            <Button onClick={saveIoBinding}>保存绑定</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -403,13 +403,8 @@ const OutputPointConfig = () => {
         name: 'IEC61850 服务端',
         protocolType: 'IEC61850_SERVER',
         description: '变电站IED服务端'
-      },
-      {
-        id: 'ems-io-1',
-        name: 'EMS IO',
-        protocolType: 'EMS_IO',
-        description: '能源管理系统IO点位'
       }
+      // Removed EMS IO node from service端 device list
     ];
     setNodes(defaultNodes);
     if (defaultNodes.length > 0) {
@@ -424,9 +419,18 @@ const OutputPointConfig = () => {
     return matchesProtocol && matchesName;
   });
 
-  // 获取EMS IO节点列表
+  // 获取EMS IO节点列表 (从所有可能的节点中获取，包括输入端的)
   const getEmsIoNodes = () => {
-    return nodes.filter(node => node.protocolType === 'EMS_IO');
+    // Since EMS IO is only in input端, we need to get it from the full node list
+    // In a real app, this would come from global state or API
+    return [
+      {
+        id: 'ems-io-1',
+        name: 'EMS IO',
+        protocolType: 'EMS_IO' as ProtocolType,
+        description: '能源管理系统IO点位'
+      }
+    ];
   };
 
   // 打开绑定窗口
@@ -456,7 +460,7 @@ const OutputPointConfig = () => {
       return '未绑定';
     }
     
-    const emsIoNode = nodes.find(node => node.id === binding.emsIoNodeId);
+    const emsIoNode = getEmsIoNodes().find(node => node.id === binding.emsIoNodeId);
     return `已绑定 ${emsIoNode?.name || '未知节点'}`;
   };
 
@@ -545,6 +549,26 @@ const OutputPointConfig = () => {
         <CardContent>
           {selectedNode && (
             <>
+              {/* DO点表绑定状态 - placed above the Tabs */}
+              {(selectedNode.protocolType === 'MODBUS_TCP_SERVER' || 
+                selectedNode.protocolType === 'IEC104_SERVER') && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">DO点表绑定:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{getBindingStatusText(selectedNode.id)}</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openBindingDialog(selectedNode.id)}
+                      >
+                        绑定
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* MODBUS TCP Server: show output and control tabs */}
               {selectedNode.protocolType === 'MODBUS_TCP_SERVER' && (
                 <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'output' | 'control')}>
@@ -554,23 +578,6 @@ const OutputPointConfig = () => {
                   </TabsList>
 
                   <TabsContent value="output">
-                    {/* DO点表绑定状态 */}
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">DO点表绑定:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{getBindingStatusText(selectedNode.id)}</span>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => openBindingDialog(selectedNode.id)}
-                          >
-                            绑定
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    
                     <ModbusTcpOutputPointForm
                       registers={modbusTcpRegisters}
                       onRegistersChange={setModbusTcpRegisters}
@@ -619,23 +626,6 @@ const OutputPointConfig = () => {
                   </TabsList>
 
                   <TabsContent value="output">
-                    {/* DO点表绑定状态 */}
-                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">DO点表绑定:</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{getBindingStatusText(selectedNode.id)}</span>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => openBindingDialog(selectedNode.id)}
-                          >
-                            绑定
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    
                     <Iec104OutputPointForm
                       points={iec104Points}
                       onPointsChange={setIec104Points}

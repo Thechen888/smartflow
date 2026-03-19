@@ -586,20 +586,20 @@ const InputPointConfig = () => {
   const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
   const [iec61850Config, setIec61850Config] = useState({ address: 'LD1/LLN0.MX.Vol', dataType: 'FLOAT32', scanRate: 1000 });
 
-  // EMS IO config states
+  // EMS IO config states - Updated with the requested values
   const [emsIoDiPoints, setEmsIoDiPoints] = useState<EmsIoDiPoint[]>([
     {
       id: 'di-1',
-      name: '急停按钮',
-      address: 'DI001',
-      description: '紧急停止按钮状态',
+      name: 'PG7',
+      address: '1',
+      description: '!water',
       scanRate: 100
     },
     {
       id: 'di-2',
-      name: '门禁状态',
-      address: 'DI002',
-      description: '机房门禁开关状态',
+      name: 'PD4',
+      address: '2',
+      description: '!door',
       scanRate: 500
     }
   ]);
@@ -607,16 +607,16 @@ const InputPointConfig = () => {
   const [emsIoDoPoints, setEmsIoDoPoints] = useState<EmsIoDoPoint[]>([
     {
       id: 'do-1',
-      name: '报警灯',
-      address: 'DO001',
-      description: '红色报警指示灯',
+      name: 'PG7',
+      address: '1',
+      description: '!water',
       defaultValue: false
     },
     {
       id: 'do-2',
-      name: '风机控制',
-      address: 'DO002',
-      description: '机房散热风机启停',
+      name: 'PD4',
+      address: '2',
+      description: '!door',
       defaultValue: true
     }
   ]);

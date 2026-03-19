@@ -25,6 +25,12 @@ interface Iec104OutputPoint {
   boundInputProtocol?: string;
   boundInputPoint?: string;
   variableName?: string;
+  // 新增IO绑定字段
+  ioBinding?: {
+    emsIoDevice: string;
+    pointType: 'DI' | 'DO';
+    point: string;
+  };
 }
 
 interface Iec104OutputPointFormProps {
@@ -138,15 +144,22 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
   const openIoBindingDialog = (point: Iec104OutputPoint) => {
     setSelectedPointForIoBinding(point);
     setIoBindingForm({
-      emsIoDevice: 'EMS IO',
-      pointType: 'DI',
-      point: '!water'
+      emsIoDevice: point.ioBinding?.emsIoDevice || 'EMS IO',
+      pointType: point.ioBinding?.pointType || 'DI',
+      point: point.ioBinding?.point || '!water'
     });
     setIoBindingDialogOpen(true);
   };
 
   const saveIoBinding = () => {
     if (selectedPointForIoBinding) {
+      const updatedPoint = {
+        ...selectedPointForIoBinding,
+        ioBinding: ioBindingForm
+      };
+      onPointsChange(points.map(point => 
+        point.id === selectedPointForIoBinding.id ? updatedPoint : point
+      ));
       setIoBindingDialogOpen(false);
       setSelectedPointForIoBinding(null);
     }
@@ -403,6 +416,7 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                   <TableHead>描述</TableHead>
                   {!isIoTab && <TableHead>逻辑类型</TableHead>}
                   {!isIoTab && <TableHead>绑定输入点位</TableHead>}
+                  {isIoTab && <TableHead>绑定IO点位</TableHead>}
                   <TableHead>操作</TableHead>
                 </TableRow>
               </TableHeader>
@@ -432,6 +446,11 @@ const Iec104OutputPointForm: React.FC<Iec104OutputPointFormProps> = ({
                         {point.logicType === 'BIND_INPUT' ? 
                           `${point.boundInputProtocol || 'IEC104 客户端'} - ${point.boundInputPoint || 'voltage'}` : 
                           '-'}
+                      </TableCell>
+                    )}
+                    {isIoTab && (
+                      <TableCell className="text-xs">
+                        {point.ioBinding ? `${point.ioBinding.point}` : '-'}
                       </TableCell>
                     )}
                     <TableCell className="flex gap-1">

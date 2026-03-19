@@ -30,6 +30,12 @@ interface ModbusRegister {
   boundInputProtocol?: string;
   boundInputPoint?: string;
   variableName?: string;
+  // 新增IO绑定字段
+  ioBinding?: {
+    emsIoDevice: string;
+    pointType: 'DI' | 'DO';
+    point: string;
+  };
 }
 
 interface ModbusTcpOutputPointFormProps {
@@ -157,15 +163,22 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
   const openIoBindingDialog = (register: ModbusRegister) => {
     setSelectedRegisterForIoBinding(register);
     setIoBindingForm({
-      emsIoDevice: 'EMS IO',
-      pointType: 'DI',
-      point: '!water'
+      emsIoDevice: register.ioBinding?.emsIoDevice || 'EMS IO',
+      pointType: register.ioBinding?.pointType || 'DI',
+      point: register.ioBinding?.point || '!water'
     });
     setIoBindingDialogOpen(true);
   };
 
   const saveIoBinding = () => {
     if (selectedRegisterForIoBinding) {
+      const updatedRegister = {
+        ...selectedRegisterForIoBinding,
+        ioBinding: ioBindingForm
+      };
+      onRegistersChange(registers.map(reg => 
+        reg.id === selectedRegisterForIoBinding.id ? updatedRegister : reg
+      ));
       setIoBindingDialogOpen(false);
       setSelectedRegisterForIoBinding(null);
     }
@@ -506,6 +519,7 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                   <TableHead>线性变换</TableHead>
                   {!isIoTab && <TableHead>逻辑类型</TableHead>}
                   {!isIoTab && <TableHead>绑定输入点位</TableHead>}
+                  {isIoTab && <TableHead>绑定IO点位</TableHead>}
                   <TableHead>提示</TableHead>
                   <TableHead>操作</TableHead>
                 </TableRow>
@@ -545,6 +559,11 @@ const ModbusTcpOutputPointForm: React.FC<ModbusTcpOutputPointFormProps> = ({
                         {register.logicType === 'BIND_INPUT' ? 
                           `${register.boundInputProtocol || 'MODBUS TCP 客户端'} - ${register.boundInputPoint || 'voltage'}` : 
                           '-'}
+                      </TableCell>
+                    )}
+                    {isIoTab && (
+                      <TableCell className="text-xs">
+                        {register.ioBinding ? `${register.ioBinding.point}` : '-'}
                       </TableCell>
                     )}
                     <TableCell className="text-xs">{register.hint || '-'}</TableCell>

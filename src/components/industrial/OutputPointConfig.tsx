@@ -44,6 +44,11 @@ interface ModbusRegister {
   a?: number;
   b?: number;
   hint?: string;
+  ioBinding?: {
+    emsIoDevice: string;
+    pointType: 'DI' | 'DO';
+    point: string;
+  };
 }
 
 // MODBUS Control Point interface (for control point tab)
@@ -78,6 +83,11 @@ interface Iec104OutputPoint {
   multiplier?: number;
   offset?: number;
   description?: string;
+  ioBinding?: {
+    emsIoDevice: string;
+    pointType: 'DI' | 'DO';
+    point: string;
+  };
 }
 
 // IEC104 Control Point interface
@@ -140,7 +150,7 @@ const OutputPointConfig = () => {
   const [filterName, setFilterName] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'output' | 'control' | 'io'>('output');
 
-  // MODBUS TCP Server output points
+  // MODBUS TCP Server output points with IO binding examples
   const [modbusTcpRegisters, setModbusTcpRegisters] = useState<ModbusRegister[]>([
     { 
       id: '1', 
@@ -154,7 +164,12 @@ const OutputPointConfig = () => {
       max: 1,
       a: 1,
       b: 0,
-      hint: '0=停止, 1=启动'
+      hint: '0=停止, 1=启动',
+      ioBinding: {
+        emsIoDevice: 'EMS IO',
+        pointType: 'DO',
+        point: '!door'
+      }
     },
     { 
       id: '2', 
@@ -168,7 +183,12 @@ const OutputPointConfig = () => {
       max: 50,
       a: 1,
       b: 0,
-      hint: '频率范围0-50Hz'
+      hint: '频率范围0-50Hz',
+      ioBinding: {
+        emsIoDevice: 'EMS IO',
+        pointType: 'DI',
+        point: '!water'
+      }
     }
   ]);
 
@@ -254,7 +274,7 @@ const OutputPointConfig = () => {
     }
   ]);
 
-  // IEC104 Server output points
+  // IEC104 Server output points with IO binding examples
   const [iec104Points, setIec104Points] = useState<Iec104OutputPoint[]>([
     {
       id: '1',
@@ -265,7 +285,12 @@ const OutputPointConfig = () => {
       max: 1,
       multiplier: 1,
       offset: 0,
-      description: '断路器分合闸控制'
+      description: '断路器分合闸控制',
+      ioBinding: {
+        emsIoDevice: 'EMS IO',
+        pointType: 'DO',
+        point: '!door'
+      }
     },
     {
       id: '2',
@@ -276,7 +301,12 @@ const OutputPointConfig = () => {
       max: 400,
       multiplier: 1,
       offset: 0,
-      description: '系统电压设定值'
+      description: '系统电压设定值',
+      ioBinding: {
+        emsIoDevice: 'EMS IO',
+        pointType: 'DI',
+        point: '!water'
+      }
     }
   ]);
 

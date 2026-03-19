@@ -158,24 +158,6 @@ import Iec104ControlPointForm from './input-points/Iec104ControlPointForm';
 const EmsIoDiPointForm = ({ points, onPointsChange }: { points: EmsIoDiPoint[]; onPointsChange: (points: EmsIoDiPoint[]) => void }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingPoint, setEditingPoint] = useState<EmsIoDiPoint | null>(null);
-  const [newPoint, setNewPoint] = useState<Omit<EmsIoDiPoint, 'id'>>({
-    name: '',
-    address: '',
-    description: '',
-    scanRate: 1000
-  });
-
-  const addPoint = () => {
-    if (newPoint.name && newPoint.address) {
-      const point: EmsIoDiPoint = {
-        ...newPoint,
-        id: Date.now().toString()
-      };
-      onPointsChange([...points, point]);
-      setNewPoint({ name: '', address: '', description: '', scanRate: 1000 });
-      setIsAdding(false);
-    }
-  };
 
   const updatePoint = () => {
     if (editingPoint) {
@@ -186,89 +168,37 @@ const EmsIoDiPointForm = ({ points, onPointsChange }: { points: EmsIoDiPoint[]; 
     }
   };
 
-  const deletePoint = (id: string) => {
-    onPointsChange(points.filter(point => point.id !== id));
-  };
-
   const startEditingPoint = (point: EmsIoDiPoint) => {
     setEditingPoint({ ...point });
-    setIsAdding(false);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <CardTitle>EMS IO DI点位配置</CardTitle>
-        <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
-          <Plus className="mr-1 h-3 w-3" />
-          {isAdding ? '取消' : '添加DI点位'}
-        </Button>
       </div>
 
       <Card>
         <CardContent>
-          {(isAdding || editingPoint) && (
+          {editingPoint && (
             <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">点位名称 *</Label>
-                  <Input
-                    placeholder="DI点位名称"
-                    value={editingPoint ? editingPoint.name : newPoint.name}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, name: e.target.value })
-                      : setNewPoint({ ...newPoint, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">地址 *</Label>
-                  <Input
-                    placeholder="点位地址"
-                    value={editingPoint ? editingPoint.address : newPoint.address}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, address: e.target.value })
-                      : setNewPoint({ ...newPoint, address: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">描述</Label>
-                  <Input
-                    placeholder="点位描述"
-                    value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, description: e.target.value })
-                      : setNewPoint({ ...newPoint, description: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">扫描频率(ms)</Label>
-                  <Input
-                    type="number"
-                    placeholder="1000"
-                    value={editingPoint ? (editingPoint.scanRate ?? 1000) : (newPoint.scanRate ?? 1000)}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, scanRate: parseInt(e.target.value) || 1000 })
-                      : setNewPoint({ ...newPoint, scanRate: parseInt(e.target.value) || 1000 })
-                    }
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs">备注</Label>
+                <Input
+                  placeholder="点位备注"
+                  value={editingPoint.description || ''}
+                  onChange={(e) => setEditingPoint({ ...editingPoint, description: e.target.value })}
+                />
               </div>
               
               <div className="flex justify-end space-x-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => {
-                  setIsAdding(false);
                   setEditingPoint(null);
                 }}>
                   取消
                 </Button>
-                <Button size="sm" onClick={editingPoint ? updatePoint : addPoint} disabled={!editingPoint && (!newPoint.name || !newPoint.address)}>
-                  {editingPoint ? '更新' : '添加'}
+                <Button size="sm" onClick={updatePoint}>
+                  保存
                 </Button>
               </div>
             </div>
@@ -278,20 +208,20 @@ const EmsIoDiPointForm = ({ points, onPointsChange }: { points: EmsIoDiPoint[]; 
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 px-3 font-medium">名称</th>
                   <th className="text-left py-2 px-3 font-medium">地址</th>
-                  <th className="text-left py-2 px-3 font-medium">描述</th>
-                  <th className="text-left py-2 px-3 font-medium">扫描频率(ms)</th>
+                  <th className="text-left py-2 px-3 font-medium">路径</th>
+                  <th className="text-left py-2 px-3 font-medium">初始值</th>
+                  <th className="text-left py-2 px-3 font-medium">备注</th>
                   <th className="w-32 py-2 px-3 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {points.map((point) => (
                   <tr key={point.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-3 font-medium">{point.name}</td>
                     <td className="py-2 px-3">{point.address}</td>
+                    <td className="py-2 px-3">{point.name}</td>
+                    <td className="py-2 px-3">-</td>
                     <td className="py-2 px-3 text-sm">{point.description || '-'}</td>
-                    <td className="py-2 px-3">{point.scanRate || 1000}</td>
                     <td className="py-2 px-3">
                       <div className="flex gap-1">
                         <Button
@@ -302,18 +232,6 @@ const EmsIoDiPointForm = ({ points, onPointsChange }: { points: EmsIoDiPoint[]; 
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500">
                             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                          </svg>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deletePoint(point.id)}
-                          title="删除"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-red-500">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                           </svg>
                         </Button>
                       </div>
@@ -339,24 +257,6 @@ const EmsIoDiPointForm = ({ points, onPointsChange }: { points: EmsIoDiPoint[]; 
 const EmsIoDoPointForm = ({ points, onPointsChange }: { points: EmsIoDoPoint[]; onPointsChange: (points: EmsIoDoPoint[]) => void }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [editingPoint, setEditingPoint] = useState<EmsIoDoPoint | null>(null);
-  const [newPoint, setNewPoint] = useState<Omit<EmsIoDoPoint, 'id'>>({
-    name: '',
-    address: '',
-    description: '',
-    defaultValue: false
-  });
-
-  const addPoint = () => {
-    if (newPoint.name && newPoint.address) {
-      const point: EmsIoDoPoint = {
-        ...newPoint,
-        id: Date.now().toString()
-      };
-      onPointsChange([...points, point]);
-      setNewPoint({ name: '', address: '', description: '', defaultValue: false });
-      setIsAdding(false);
-    }
-  };
 
   const updatePoint = () => {
     if (editingPoint) {
@@ -367,95 +267,37 @@ const EmsIoDoPointForm = ({ points, onPointsChange }: { points: EmsIoDoPoint[]; 
     }
   };
 
-  const deletePoint = (id: string) => {
-    onPointsChange(points.filter(point => point.id !== id));
-  };
-
   const startEditingPoint = (point: EmsIoDoPoint) => {
     setEditingPoint({ ...point });
-    setIsAdding(false);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <CardTitle>EMS IO DO点位配置</CardTitle>
-        <Button onClick={() => setIsAdding(!isAdding)} variant="outline" size="sm">
-          <Plus className="mr-1 h-3 w-3" />
-          {isAdding ? '取消' : '添加DO点位'}
-        </Button>
       </div>
 
       <Card>
         <CardContent>
-          {(isAdding || editingPoint) && (
+          {editingPoint && (
             <div className="space-y-4 mb-4 p-3 bg-gray-50 rounded">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">点位名称 *</Label>
-                  <Input
-                    placeholder="DO点位名称"
-                    value={editingPoint ? editingPoint.name : newPoint.name}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, name: e.target.value })
-                      : setNewPoint({ ...newPoint, name: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">地址 *</Label>
-                  <Input
-                    placeholder="点位地址"
-                    value={editingPoint ? editingPoint.address : newPoint.address}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, address: e.target.value })
-                      : setNewPoint({ ...newPoint, address: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">描述</Label>
-                  <Input
-                    placeholder="点位描述"
-                    value={editingPoint ? (editingPoint.description ?? '') : (newPoint.description ?? '')}
-                    onChange={(e) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, description: e.target.value })
-                      : setNewPoint({ ...newPoint, description: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">默认值</Label>
-                  <Select
-                    value={editingPoint ? (editingPoint.defaultValue ? 'true' : 'false') : (newPoint.defaultValue ? 'true' : 'false')}
-                    onValueChange={(value) => editingPoint 
-                      ? setEditingPoint({ ...editingPoint, defaultValue: value === 'true' })
-                      : setNewPoint({ ...newPoint, defaultValue: value === 'true' })
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="false">False</SelectItem>
-                      <SelectItem value="true">True</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs">备注</Label>
+                <Input
+                  placeholder="点位备注"
+                  value={editingPoint.description || ''}
+                  onChange={(e) => setEditingPoint({ ...editingPoint, description: e.target.value })}
+                />
               </div>
               
               <div className="flex justify-end space-x-2 pt-2">
                 <Button variant="outline" size="sm" onClick={() => {
-                  setIsAdding(false);
                   setEditingPoint(null);
                 }}>
                   取消
                 </Button>
-                <Button size="sm" onClick={editingPoint ? updatePoint : addPoint} disabled={!editingPoint && (!newPoint.name || !newPoint.address)}>
-                  {editingPoint ? '更新' : '添加'}
+                <Button size="sm" onClick={updatePoint}>
+                  保存
                 </Button>
               </div>
             </div>
@@ -465,20 +307,20 @@ const EmsIoDoPointForm = ({ points, onPointsChange }: { points: EmsIoDoPoint[]; 
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-2 px-3 font-medium">名称</th>
                   <th className="text-left py-2 px-3 font-medium">地址</th>
-                  <th className="text-left py-2 px-3 font-medium">描述</th>
-                  <th className="text-left py-2 px-3 font-medium">默认值</th>
+                  <th className="text-left py-2 px-3 font-medium">路径</th>
+                  <th className="text-left py-2 px-3 font-medium">初始值</th>
+                  <th className="text-left py-2 px-3 font-medium">备注</th>
                   <th className="w-32 py-2 px-3 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {points.map((point) => (
                   <tr key={point.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-3 font-medium">{point.name}</td>
                     <td className="py-2 px-3">{point.address}</td>
-                    <td className="py-2 px-3 text-sm">{point.description || '-'}</td>
+                    <td className="py-2 px-3">{point.name}</td>
                     <td className="py-2 px-3">{point.defaultValue ? 'True' : 'False'}</td>
+                    <td className="py-2 px-3 text-sm">{point.description || '-'}</td>
                     <td className="py-2 px-3">
                       <div className="flex gap-1">
                         <Button
@@ -489,18 +331,6 @@ const EmsIoDoPointForm = ({ points, onPointsChange }: { points: EmsIoDoPoint[]; 
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-blue-500">
                             <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
-                          </svg>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deletePoint(point.id)}
-                          title="删除"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-red-500">
-                            <path d="M3 6h18"></path>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                           </svg>
                         </Button>
                       </div>

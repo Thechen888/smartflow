@@ -1214,93 +1214,93 @@ const NodeConfig = () => {
   };
 
   // EMS IO Form - with DI/DO configuration fields
-  const EmsIoForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
-    const [formData, setFormData] = useState({
-      name: '',
-      description: '',
-      config: createDefaultConfig('EMS_IO')
-    });
+  // const EmsIoForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
+  //   const [formData, setFormData] = useState({
+  //     name: '',
+  //     description: '',
+  //     config: createDefaultConfig('EMS_IO')
+  //   });
 
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>节点名称 *</Label>
-            <Input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="输入节点名称"
-            />
-          </div>
-          <div>
-            <Label>描述</Label>
-            <Input
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="节点描述"
-            />
-          </div>
-        </div>
+  //   return (
+  //     <div className="space-y-4">
+  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //         <div>
+  //           <Label>节点名称 *</Label>
+  //           <Input
+  //             value={formData.name}
+  //             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+  //             placeholder="输入节点名称"
+  //           />
+  //         </div>
+  //         <div>
+  //           <Label>描述</Label>
+  //           <Input
+  //             value={formData.description}
+  //             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+  //             placeholder="节点描述"
+  //           />
+  //         </div>
+  //       </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>DI起始地址</Label>
-            <Input
-              type="number"
-              value={formData.config.diStartAddress}
-              onChange={(e) => setFormData({
-                ...formData,
-                config: { ...formData.config, diStartAddress: parseInt(e.target.value) || 1 }
-              })}
-            />
-          </div>
-          <div>
-            <Label>计数（DI）</Label>
-            <Input
-              type="number"
-              value={formData.config.diCount}
-              onChange={(e) => setFormData({
-                ...formData,
-                config: { ...formData.config, diCount: parseInt(e.target.value) || 10 }
-              })}
-            />
-          </div>
-        </div>
+  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //         <div>
+  //           <Label>DI起始地址</Label>
+  //           <Input
+  //             type="number"
+  //             value={formData.config.diStartAddress}
+  //             onChange={(e) => setFormData({
+  //               ...formData,
+  //               config: { ...formData.config, diStartAddress: parseInt(e.target.value) || 1 }
+  //             })}
+  //           />
+  //         </div>
+  //         <div>
+  //           <Label>计数（DI）</Label>
+  //           <Input
+  //             type="number"
+  //             value={formData.config.diCount}
+  //             onChange={(e) => setFormData({
+  //               ...formData,
+  //               config: { ...formData.config, diCount: parseInt(e.target.value) || 10 }
+  //             })}
+  //           />
+  //         </div>
+  //       </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label>DO起始地址</Label>
-            <Input
-              type="number"
-              value={formData.config.doStartAddress}
-              onChange={(e) => setFormData({
-                ...formData,
-                config: { ...formData.config, doStartAddress: parseInt(e.target.value) || 1 }
-              })}
-            />
-          </div>
-          <div>
-            <Label>计数（DO）</Label>
-            <Input
-              type="number"
-              value={formData.config.doCount}
-              onChange={(e) => setFormData({
-                ...formData,
-                config: { ...formData.config, doCount: parseInt(e.target.value) || 10 }
-              })}
-            />
-          </div>
-        </div>
+  //       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  //         <div>
+  //           <Label>DO起始地址</Label>
+  //           <Input
+  //             type="number"
+  //             value={formData.config.doStartAddress}
+  //             onChange={(e) => setFormData({
+  //               ...formData,
+  //               config: { ...formData.config, doStartAddress: parseInt(e.target.value) || 1 }
+  //             })}
+  //           />
+  //         </div>
+  //         <div>
+  //           <Label>计数（DO）</Label>
+  //           <Input
+  //             type="number"
+  //             value={formData.config.doCount}
+  //             onChange={(e) => setFormData({
+  //               ...formData,
+  //               config: { ...formData.config, doCount: parseInt(e.target.value) || 10 }
+  //             })}
+  //           />
+  //         </div>
+  //       </div>
 
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button variant="outline" onClick={() => setIsAdding(false)}>取消</Button>
-          <Button onClick={() => onSubmit(formData)} disabled={!formData.name}>
-            添加节点
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  //       <div className="flex justify-end space-x-2 pt-4">
+  //         <Button variant="outline" onClick={() => setIsAdding(false)}>取消</Button>
+  //         <Button onClick={() => onSubmit(formData)} disabled={!formData.name}>
+  //           添加节点
+  //         </Button>
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
   // Other protocol forms remain the same (DLT645, IEC104, IEC61850)
   const Dlt645RtuForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {

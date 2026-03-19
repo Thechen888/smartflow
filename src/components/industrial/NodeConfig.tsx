@@ -146,9 +146,12 @@ interface Iec61850ClientConfig {
   autoReconnect: boolean;
 }
 
-// EMS IO Config - minimal config with only name and description
+// EMS IO Config - with DI/DO configuration fields
 interface EmsIoConfig {
-  // No additional configuration needed for EMS IO
+  diStartAddress: number;
+  diCount: number;
+  doStartAddress: number;
+  doCount: number;
 }
 
 // Updated CommunicationNode type
@@ -314,7 +317,12 @@ const NodeConfig = () => {
           autoReconnect: true
         };
       case 'EMS_IO':
-        return {};
+        return {
+          diStartAddress: 1,
+          diCount: 10,
+          doStartAddress: 1,
+          doCount: 10
+        };
       default:
         return {};
     }
@@ -1109,7 +1117,7 @@ const NodeConfig = () => {
     );
   };
 
-  // EMS IO Form - only name and description
+  // EMS IO Form - with DI/DO configuration fields
   const EmsIoForm = ({ onSubmit }: { onSubmit: (data: any) => void }) => {
     const [formData, setFormData] = useState({
       name: '',
@@ -1134,6 +1142,56 @@ const NodeConfig = () => {
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="节点描述"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>DI起始地址</Label>
+            <Input
+              type="number"
+              value={formData.config.diStartAddress}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, diStartAddress: parseInt(e.target.value) || 1 }
+              })}
+            />
+          </div>
+          <div>
+            <Label>计数（DI）</Label>
+            <Input
+              type="number"
+              value={formData.config.diCount}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, diCount: parseInt(e.target.value) || 10 }
+              })}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>DO起始地址</Label>
+            <Input
+              type="number"
+              value={formData.config.doStartAddress}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, doStartAddress: parseInt(e.target.value) || 1 }
+              })}
+            />
+          </div>
+          <div>
+            <Label>计数（DO）</Label>
+            <Input
+              type="number"
+              value={formData.config.doCount}
+              onChange={(e) => setFormData({
+                ...formData,
+                config: { ...formData.config, doCount: parseInt(e.target.value) || 10 }
+              })}
             />
           </div>
         </div>

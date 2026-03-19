@@ -143,9 +143,12 @@ interface Iec61850ClientConfig {
   autoReconnect: boolean;
 }
 
-// EMS IO Config - empty config
+// EMS IO Config - with DI/DO configuration fields
 interface EmsIoConfig {
-  // No configuration needed
+  diStartAddress: number;
+  diCount: number;
+  doStartAddress: number;
+  doCount: number;
 }
 
 type CommunicationNode = BaseNode & (
@@ -450,8 +453,55 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
         );
       case 'EMS_IO':
         return (
-          <div className="text-sm text-gray-500 py-2">
-            EMS IO 协议无需额外配置
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label>DI起始地址</Label>
+                <Input
+                  type="number"
+                  value={editedNode.config.diStartAddress}
+                  onChange={(e) => setEditedNode({
+                    ...editedNode,
+                    config: { ...editedNode.config, diStartAddress: parseInt(e.target.value) || 1 }
+                  })}
+                />
+              </div>
+              <div>
+                <Label>计数（DI）</Label>
+                <Input
+                  type="number"
+                  value={editedNode.config.diCount}
+                  onChange={(e) => setEditedNode({
+                    ...editedNode,
+                    config: { ...editedNode.config, diCount: parseInt(e.target.value) || 10 }
+                  })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label>DO起始地址</Label>
+                <Input
+                  type="number"
+                  value={editedNode.config.doStartAddress}
+                  onChange={(e) => setEditedNode({
+                    ...editedNode,
+                    config: { ...editedNode.config, doStartAddress: parseInt(e.target.value) || 1 }
+                  })}
+                />
+              </div>
+              <div>
+                <Label>计数（DO）</Label>
+                <Input
+                  type="number"
+                  value={editedNode.config.doCount}
+                  onChange={(e) => setEditedNode({
+                    ...editedNode,
+                    config: { ...editedNode.config, doCount: parseInt(e.target.value) || 10 }
+                  })}
+                />
+              </div>
+            </div>
           </div>
         );
       default:
@@ -590,8 +640,11 @@ const NodeConfigDialog: React.FC<NodeConfigDialogProps> = ({
         );
       case 'EMS_IO':
         return (
-          <div className="text-sm text-gray-500">
-            EMS IO 协议无需额外配置
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div><span className="font-medium">DI起始地址:</span> {(config as EmsIoConfig).diStartAddress}</div>
+            <div><span className="font-medium">计数（DI）:</span> {(config as EmsIoConfig).diCount}</div>
+            <div><span className="font-medium">DO起始地址:</span> {(config as EmsIoConfig).doStartAddress}</div>
+            <div><span className="font-medium">计数（DO）:</span> {(config as EmsIoConfig).doCount}</div>
           </div>
         );
       default:

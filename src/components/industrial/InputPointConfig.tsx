@@ -384,22 +384,22 @@ const InputPointConfig = () => {
   const [dlt645TcpConfig, setDlt645TcpConfig] = useState({ address: '000000000002', dataType: 'POWER', scanRate: 10000 });
   const [iec61850Config, setIec61850Config] = useState({ address: 'LD1/LLN0.MX.Vol', dataType: 'FLOAT32', scanRate: 1000 });
 
-  // EMS IO config states
+  // EMS IO config states - updated with specific values
   const [emsIoDiPoints, setEmsIoDiPoints] = useState<EmsIoPoint[]>([
     {
       id: 'ems-di-1',
-      name: '开关状态1',
+      name: 'PG7',
       pointType: 'DI',
-      address: 'DI001',
-      description: '主开关状态',
+      address: '1',
+      description: '!water',
       enabled: true
     },
     {
       id: 'ems-di-2',
-      name: '报警信号1',
+      name: 'PD4',
       pointType: 'DI',
-      address: 'DI002',
-      description: '紧急报警信号',
+      address: '2',
+      description: '!door',
       enabled: true
     }
   ]);
@@ -407,18 +407,18 @@ const InputPointConfig = () => {
   const [emsIoDoPoints, setEmsIoDoPoints] = useState<EmsIoPoint[]>([
     {
       id: 'ems-do-1',
-      name: '控制输出1',
+      name: 'PG7',
       pointType: 'DO',
-      address: 'DO001',
-      description: '电机启停控制',
+      address: '1',
+      description: '!water',
       enabled: true
     },
     {
       id: 'ems-do-2',
-      name: '报警输出1',
+      name: 'PD4',
       pointType: 'DO',
-      address: 'DO002',
-      description: '声光报警控制',
+      address: '2',
+      description: '!door',
       enabled: true
     }
   ]);
@@ -632,6 +632,7 @@ const InputPointConfig = () => {
                       points={emsIoDiPoints}
                       pointType="DI"
                       onPointsChange={setEmsIoDiPoints}
+                      hideActions={true}
                     />
                   </TabsContent>
 
@@ -640,6 +641,7 @@ const InputPointConfig = () => {
                       points={emsIoDoPoints}
                       pointType="DO"
                       onPointsChange={setEmsIoDoPoints}
+                      hideActions={true}
                     />
                   </TabsContent>
                 </Tabs>
